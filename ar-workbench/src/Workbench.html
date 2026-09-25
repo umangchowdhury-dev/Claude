@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2328; --muted: #5f6b7a; --faint: #8a94a3;
+    --line: #e3e6ea; --accent: #1a73e8; --accent-soft: #e8f0fe;
+    --red: #c5221f; --red-soft: #fce8e6; --amber: #b06000; --amber-soft: #fef3e0;
+    --green: #137333; --green-soft: #e6f4ea; --purple: #7b1fa2; --purple-soft: #f3e8fd;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font: 13px/1.4 "Google Sans", Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); } .faint { color: var(--faint); }
+  .hidden { display: none !important; }
+
+  /* Top bar */
+  .top { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); }
+  .top-row { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
+  .top-row select { flex: 1; min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-weight: 600; }
+  .icon-btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+  .icon-btn:hover { background: var(--accent-soft); }
+  .icon-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .tabs { display: flex; padding: 0 6px; gap: 2px; overflow-x: auto; }
+  .tab { flex: 1; border: 0; background: none; padding: 7px 6px 8px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .count { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--red); color: #fff; font-size: 10px; line-height: 16px; margin-left: 3px; }
+
+  main { padding: 10px; }
+  .full main { padding: 14px 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; }
+  .card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .grid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .full .grid.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .full .grid.k6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; min-width: 0; }
+  .kpi .l { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi .v { font-size: 18px; font-weight: 600; margin-top: 2px; white-space: nowrap; }
+  .kpi .s { font-size: 11px; color: var(--faint); }
+  .kpi.click { cursor: pointer; } .kpi.click:hover { border-color: var(--accent); }
+
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; line-height: 17px; white-space: nowrap; background: #eef0f3; color: var(--muted); }
+  .pill.red { background: var(--red-soft); color: var(--red); }
+  .pill.amber { background: var(--amber-soft); color: var(--amber); }
+  .pill.green { background: var(--green-soft); color: var(--green); }
+  .pill.blue { background: var(--accent-soft); color: var(--accent); }
+  .pill.purple { background: var(--purple-soft); color: var(--purple); }
+
+  /* Lists */
+  .search { display: flex; gap: 6px; margin-bottom: 8px; }
+  .search input { flex: 1; min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .search select { padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; max-width: 45%; }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 2px 9px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip .n { opacity: .75; margin-left: 3px; }
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .item { display: flex; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--line); cursor: pointer; align-items: flex-start; }
+  .item:last-child { border-bottom: 0; }
+  .item:hover { background: #f8fafd; }
+  .item .main { flex: 1; min-width: 0; }
+  .item .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .right { text-align: right; white-space: nowrap; }
+  .item .amt { font-weight: 600; }
+  .item .tags { margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .item input[type=checkbox] { margin-top: 3px; }
+  .empty { padding: 18px; text-align: center; color: var(--faint); }
+  .dots { display: inline-flex; gap: 2px; vertical-align: middle; }
+  .dot { width: 8px; height: 8px; border-radius: 2px; background: #e3e6ea; }
+  .dot.d-yes { background: #34a853; } .dot.d-ptp { background: var(--accent); } .dot.d-exp { background: #7b1fa2; }
+  .dot.d-nd { background: #9aa0a6; } .dot.d-no { background: #ea4335; } .dot.d-leave { background: #fbbc04; }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* Tables (full mode) */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { white-space: nowrap; padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  th { font-size: 11px; color: var(--muted); font-weight: 600; background: #fafbfc; position: sticky; top: 0; cursor: pointer; white-space: nowrap; }
+  td.r, th.r { text-align: right; }
+  tr.sel td { background: #f1f6fe; }
+  tr.clickable { cursor: pointer; } tr.clickable:hover td { background: #f8fafd; }
+  .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; }
+
+  /* Detail */
+  .back { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; margin-bottom: 8px; font-weight: 500; }
+  .title { font-size: 16px; font-weight: 700; margin: 0; }
+  .full .title { font-size: 20px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12px; }
+  .kv div:nth-child(odd) { color: var(--muted); white-space: nowrap; }
+  .kv div:nth-child(even) { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .kv div.open { -webkit-line-clamp: unset; }
+  .bar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; background: #eef0f3; margin: 6px 0 4px; }
+  .bar div { height: 100%; }
+  .blegend { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 3px 10px; font-size: 11px; }
+  .blegend span i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 6px 11px; cursor: pointer; font-weight: 500; }
+  .btn:hover { background: #f4f6f8; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #1765cc; }
+  .btn.danger { color: var(--red); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.sm { padding: 3px 8px; font-size: 12px; }
+  .selbar { position: sticky; bottom: 0; background: #202124; color: #fff; border-radius: var(--radius); padding: 8px 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; z-index: 5; }
+  .selbar .btn { border-color: #5f6368; background: #303134; color: #fff; }
+  .selbar .btn.primary { background: var(--accent); border-color: var(--accent); }
+  .inv { padding: 8px 10px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; }
+  .inv:last-child { border-bottom: 0; }
+  .inv.sel { background: #f1f6fe; }
+  .inv .main { flex: 1; min-width: 0; }
+  .two { display: flex; justify-content: space-between; gap: 8px; }
+  .detail-grid { display: grid; gap: 10px; }
+  .full .detail-grid { grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+  .tl { border-left: 3px solid var(--line); padding-left: 8px; }
+  .tl.PTP { border-color: var(--accent); } .tl.Call { border-color: #34a853; } .tl.Email { border-color: #fbbc04; }
+  .tl.Status { border-color: var(--purple); } .tl.WhatsApp { border-color: #25d366; }
+  .tl .h { font-size: 11px; color: var(--muted); }
+  details summary { cursor: pointer; color: var(--muted); font-weight: 500; }
+
+  /* Forms / modal */
+  .overlay { position: fixed; inset: 0; background: rgba(32, 33, 36, .45); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+  .full .overlay { align-items: center; }
+  .sheet { background: #fff; width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; border-radius: 12px 12px 0 0; padding: 14px; }
+  .full .sheet { border-radius: 12px; }
+  .sheet h2 { margin: 0 0 10px; font-size: 16px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .03em; }
+  .field input, .field select, .field textarea { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .field textarea { min-height: 60px; resize: vertical; }
+  .quick { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; position: sticky; bottom: -14px; background: #fff; padding: 8px 0; }
+  .amt-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+  .amt-row input { width: 110px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; text-align: right; }
+
+  .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #202124; color: #fff; padding: 8px 14px; border-radius: 6px; z-index: 100; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.25); max-width: 90%; }
+  .toast.err { background: var(--red); }
+  .loading { padding: 30px; text-align: center; color: var(--muted); }
+  .spinner { width: 22px; height: 22px; border: 3px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+  .progress { height: 6px; background: #eef0f3; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .progress div { height: 100%; background: var(--accent); }
+  .lb-me td { background: var(--accent-soft); font-weight: 600; }
+  .full .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .full .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  svg text { font-family: inherit; }
+</style>
+</head>
+<body data-mode="<?= mode ?>" data-pan="<?= startPan ?>">
+<div class="top">
+  <div class="top-row">
+    <select id="me" title="Whose tracker"></select>
+    <button class="icon-btn" id="followBtn" title="Follow the PAN you click in the sheet">🎯 Follow</button>
+    <button class="icon-btn" id="refreshBtn" title="Reload data">↻</button>
+    <button class="icon-btn" id="expandBtn" title="Open full-screen">⤢</button>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab" data-tab="today">Today<span class="count hidden" id="todayCount"></span></button>
+    <button class="tab" data-tab="pans">My PANs</button>
+    <button class="tab" data-tab="ptps">PTPs<span class="count hidden" id="ptpCount"></span></button>
+    <button class="tab" data-tab="stats">Productivity</button>
+  </div>
+</div>
+<main id="view"><div class="loading"><div class="spinner"></div>Loading your workbench…</div></main>
+<div id="modal"></div>
+
+<script>
+(function () {
+  'use strict';
+  var MODE = document.body.getAttribute('data-mode') || 'sidebar';
+  var START_PAN = document.body.getAttribute('data-pan') || '';
+  if (MODE === 'full') document.body.classList.add('full');
+  if (MODE === 'full') document.getElementById('expandBtn').classList.add('hidden');
+  if (MODE !== 'sidebar') document.getElementById('followBtn').classList.add('hidden');
+
+  var S = {
+    init: null, me: '', tab: 'today', book: null, ptps: null, stats: null,
+    pan: null, panData: null, sel: {}, bookSel: {},
+    filter: 'all', sort: 'priority', q: '', follow: false, lastSelPan: '', invSort: { k: 'ageing', d: -1 },
+    showAllRows: false
+  };
+  var BUCKETS = [
+    ['b0', 'Not due', '#9aa0a6'], ['b1', '0-30', '#81c995'], ['b2', '31-60', '#fdd663'],
+    ['b3', '61-90', '#fbbc04'], ['b4', '91-120', '#f29900'], ['b5', '121-150', '#ea4335'], ['b6', '>150', '#a50e0e']
+  ];
+  var BUCKET_OF = { 'a.Not Due': 0, 'b.0-30': 1, 'c.31-60': 2, 'd.61-90': 3, 'e.91-120': 4, 'f.121-150': 5, 'g.>151': 6 };
+
+  // ---------- helpers ----------
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (res, rej) {
+      var r = google.script.run.withSuccessHandler(res).withFailureHandler(rej);
+      r[fn].apply(r, args);
+    });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function inr(n, full) {
+    n = Number(n) || 0;
+    var a = Math.abs(n), s;
+    if (!full && a >= 1e7) s = (a / 1e7).toFixed(2) + ' Cr';
+    else if (!full && a >= 1e5) s = (a / 1e5).toFixed(2) + ' L';
+    else s = Math.round(a).toLocaleString('en-IN');
+    return (n < 0 ? '-' : '') + '₹' + s;
+  }
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function fd(k) { return k ? k.slice(8, 10) + ' ' + MON[+k.slice(5, 7) - 1] + ' ' + k.slice(2, 4) : ''; }
+  function fds(k) { return k ? k.slice(8, 10) + ' ' + MON[+k.slice(5, 7) - 1] : ''; }
+  function addDays(k, n) { var d = new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10))); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function dow(k) { return new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10))).getUTCDay(); }
+  function nextWeekday(k, wd) { var d = addDays(k, 1); while (dow(d) !== wd) d = addDays(d, 1); return d; }
+  function nextWorkday(k) { var d = addDays(k, 1); while (dow(d) === 0) d = addDays(d, 1); return d; }
+  function pct(x) { return x == null ? '–' : Math.round(x * 100) + '%'; }
+  function today() { return S.init.today; }
+  function $(id) { return document.getElementById(id); }
+  function toast(msg, err) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (err ? ' err' : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, err ? 6000 : 2800);
+  }
+  function fail(e) { toast((e && e.message) || String(e), true); }
+  function loading(msg) { $('view').innerHTML = '<div class="loading"><div class="spinner"></div>' + esc(msg || 'Loading…') + '</div>'; }
+  function statusPill(s) {
+    if (!s) return '';
+    var c = /Broken|Missed/.test(s) ? 'red' : /Due Today|Partially/.test(s) ? 'amber' : /Kept|^Paid/.test(s) ? 'green' : /Given/.test(s) ? 'blue' : '';
+    return '<span class="pill ' + c + '">' + esc(s) + '</span>';
+  }
+  function tagPill(t) { return t ? '<span class="pill purple">' + esc(t) + '</span>' : ''; }
+  function dc(v) { return { 'Yes': 'd-yes', 'PTP': 'd-ptp', 'Expected Payment': 'd-exp', 'Invoice Not Due': 'd-nd', 'No': 'd-no', 'Leave': 'd-leave', 'Holiday': 'd-leave' }[v] || (v ? 'd-yes' : ''); }
+  function dots(recent) {
+    // recent[0] = today … oldest last; render oldest -> newest
+    return '<span class="dots" title="Last 7 days (oldest → today)">' + (recent || []).slice().reverse().map(function (v) {
+      return '<i class="dot ' + dc(v) + '" title="' + esc(v || 'no entry') + '"></i>';
+    }).join('') + '</span>';
+  }
+  function ageBar(r) {
+    var tot = BUCKETS.reduce(function (s, b) { return s + Math.max(r[b[0]] || 0, 0); }, 0) || 1;
+    return '<div class="bar">' + BUCKETS.map(function (b) {
+      var v = Math.max(r[b[0]] || 0, 0);
+      return v ? '<div style="width:' + (v / tot * 100) + '%;background:' + b[2] + '" title="' + b[1] + ': ' + inr(v) + '"></div>' : '';
+    }).join('') + '</div><div class="blegend">' + BUCKETS.map(function (b) {
+      return '<span><i style="background:' + b[2] + '"></i>' + b[1] + ' <b class="num">' + inr(r[b[0]] || 0) + '</b></span>';
+    }).join('') + '</div>';
+  }
+
+  // ---------- boot ----------
+  call('wbInit').then(function (init) {
+    S.init = init;
+    var sel = $('me');
+    sel.innerHTML = '<option value="">— Select your name —</option>' + init.associates.map(function (a) {
+      return '<option' + (a === init.me ? ' selected' : '') + '>' + esc(a) + '</option>';
+    }).join('');
+    S.me = init.me;
+    sel.onchange = function () { S.me = sel.value; call('wbSetMe', S.me); S.book = S.ptps = S.stats = null; S.pan = null; go(S.tab); };
+    if (START_PAN) { openPan(START_PAN); return; }
+    go('today');
+  }).catch(fail);
+
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    S.pan = null; go(b.getAttribute('data-tab'));
+  });
+  $('refreshBtn').onclick = function () {
+    S.book = S.ptps = S.stats = null;
+    loading('Refreshing invoice data…');
+    call('wbRefresh').then(function (r) { toast('Refreshed · ' + r.invoices + ' open invoices'); if (S.pan) openPan(S.pan); else go(S.tab); }).catch(fail);
+  };
+  $('expandBtn').onclick = function () { google.script.run.WB_openFullScreen(S.pan || ''); };
+  $('followBtn').onclick = function () {
+    S.follow = !S.follow;
+    this.classList.toggle('on', S.follow);
+    toast(S.follow ? 'Click any PAN row in the sheet to open it here' : 'Follow selection off');
+    if (S.follow) poll();
+  };
+  function poll() {
+    if (!S.follow) return;
+    if (document.hidden) { setTimeout(poll, 2000); return; }
+    call('wbGetSelection').then(function (s) {
+      if (s.pan && s.pan !== S.lastSelPan) { S.lastSelPan = s.pan; openPan(s.pan); }
+      setTimeout(poll, 1200);
+    }).catch(function () { setTimeout(poll, 4000); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+      var q = $('q'); if (q) { e.preventDefault(); q.focus(); }
+    }
+    if (e.key === 'Escape') { if ($('modal').innerHTML) closeModal(); else if (S.pan) { S.pan = null; go(S.tab); } }
+  });
+
+  function setTabs() {
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
+      t.classList.toggle('active', !S.pan && t.getAttribute('data-tab') === S.tab);
+    });
+  }
+  function needMe() {
+    if (S.me) return false;
+    $('view').innerHTML = '<div class="card"><h3>Welcome 👋</h3><p>Pick your name at the top to load your tracker. ' +
+      'Tip: opening the workbench from your own tab selects you automatically.</p></div>';
+    return true;
+  }
+  function go(tab) {
+    S.tab = tab; setTabs();
+    if (needMe()) return;
+    if (tab === 'today' || tab === 'pans') return ensureBook().then(tab === 'today' ? renderToday : renderPans).catch(fail);
+    if (tab === 'ptps') return ensurePtps().then(renderPtps).catch(fail);
+    if (tab === 'stats') { loading('Crunching productivity…'); return call('wbGetProductivity', S.me).then(function (d) { S.stats = d; renderStats(); }).catch(fail); }
+  }
+  function ensureBook() {
+    if (S.book && S.book.assoc === S.me) return Promise.resolve();
+    loading('Loading ' + S.me + '’s PANs…');
+    return Promise.all([call('wbGetBook', S.me), call('wbGetPtps', S.me)]).then(function (r) {
+      S.book = r[0]; S.ptps = r[1]; badges();
+    });
+  }
+  function ensurePtps() {
+    if (S.ptps && S.book && S.book.assoc === S.me) return Promise.resolve();
+    return ensureBook();
+  }
+  function badges() {
+    var t = today();
+    var due = S.book.rows.filter(function (r) { return r.ptpBroken || r.ptpDueToday || (r.nextFollowUp && r.nextFollowUp <= t); }).length;
+    var c = $('todayCount'); c.textContent = due; c.classList.toggle('hidden', !due);
+    var br = S.ptps.rows.filter(function (p) { return p.live === 'PTP Broken'; }).length;
+    var p = $('ptpCount'); p.textContent = br; p.classList.toggle('hidden', !br);
+  }
+
+  // ---------- TODAY ----------
+  function renderToday() {
+    var rows = S.book.rows, t = today();
+    var active = rows.filter(function (r) { return r.total !== 0 || r.overdue !== 0; });
+    var sum = function (arr, k) { return arr.reduce(function (s, r) { return s + (r[k] || 0); }, 0); };
+    var touched = active.filter(function (r) { return r.today; }).length;
+    var brokenP = S.ptps.rows.filter(function (p) { return p.live === 'PTP Broken'; });
+    var dueP = S.ptps.rows.filter(function (p) { return p.live === 'PTP Due Today'; });
+    var fu = rows.filter(function (r) { return r.nextFollowUp && r.nextFollowUp <= t && !r.today; });
+    var stale = active.filter(function (r) { return r.overdue > 0 && (r.daysSince === null || r.daysSince >= 3); })
+      .sort(function (a, b) { return b.overdue - a.overdue; });
+    var queue = active.filter(function (r) { return !r.today && r.overdue > 0; })
+      .sort(function (a, b) { return b.priority - a.priority; }).slice(0, 10);
+    var h = '';
+    h += '<div class="grid k6" style="margin-bottom:10px">' +
+      kpi('Overdue', inr(sum(active, 'overdue')), active.filter(function (r) { return r.overdue > 0; }).length + ' PANs', 'overdue') +
+      kpi('>60 days', inr(sum(active, 'gt60')), active.filter(function (r) { return r.gt60 > 0; }).length + ' PANs', 'gt60') +
+      kpi('Possible AR-AP', inr(sum(active, 'possibleArAp')), active.filter(function (r) { return r.possibleArAp > 0; }).length + ' PANs', 'arap') +
+      kpi('Touched today', touched + ' / ' + active.length, '<div class="progress"><div style="width:' + (active.length ? touched / active.length * 100 : 0) + '%"></div></div>', 'untouchedToday') +
+      kpi('Broken PTPs', brokenP.length, inr(brokenP.reduce(function (s, p) { return s + p.outstanding; }, 0)), 'broken') +
+      kpi('Untouched 3d+', stale.length, 'with overdue', 'stale') +
+      '</div>';
+    h += '<div class="cols2">';
+    h += section('🔴 Broken PTPs – call back first', brokenP.length, ptpList(brokenP.slice(0, 8)), brokenP.length > 8 ? 'ptps' : '');
+    h += section('📅 PTPs due today', dueP.length, ptpList(dueP), '');
+    h += '</div><div class="cols2">';
+    h += section('⏰ Follow-ups scheduled for today', fu.length, panList(fu.slice(0, 10)), '');
+    h += section('🎯 Suggested next 10 (priority)', queue.length, panList(queue), 'pans');
+    h += '</div>';
+    h += section('💤 Not followed up for 3+ days (by overdue)', stale.length, panList(stale.slice(0, 10)), stale.length > 10 ? 'stale' : '');
+    h += '<div class="card"><h3>Mark whole day <span class="faint" style="text-transform:none;letter-spacing:0">fills today’s column for every PAN not yet marked</span></h3>' +
+      '<div class="actions"><button class="btn sm" data-day="Leave">🌴 Leave</button><button class="btn sm" data-day="Holiday">🎉 Holiday</button></div></div>';
+    $('view').innerHTML = h;
+    bindPanClicks();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-day]'), function (b) {
+      b.onclick = function () {
+        var v = b.getAttribute('data-day');
+        var pans = S.book.rows.filter(function (r) { return !r.today; }).map(function (r) { return r.pan; });
+        if (!confirm('Mark ' + pans.length + ' PANs as "' + v + '" for today?')) return;
+        call('wbBulkDaily', S.me, pans, v).then(function (r) { toast(r.count + ' PANs marked ' + v); S.book = null; go('today'); }).catch(fail);
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.kpi.click'), function (k) {
+      k.onclick = function () { S.filter = k.getAttribute('data-f'); S.sort = S.filter === 'broken' ? 'priority' : 'overdue'; go('pans'); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-more]'), function (b) {
+      b.onclick = function () { var m = b.getAttribute('data-more'); if (m === 'ptps') go('ptps'); else { S.filter = m === 'pans' ? 'all' : m; go('pans'); } };
+    });
+  }
+  function kpi(label, value, sub, filter) {
+    return '<div class="kpi' + (filter ? ' click' : '') + '"' + (filter ? ' data-f="' + filter + '"' : '') + '><div class="l">' + esc(label) +
+      '</div><div class="v num">' + value + '</div><div class="s">' + sub + '</div></div>';
+  }
+  function section(title, n, body, more) {
+    return '<div><div class="section-title"><span>' + title + ' <span class="faint">(' + n + ')</span></span>' +
+      (more ? '<button class="btn sm" data-more="' + more + '">See all</button>' : '') + '</div>' + body + '</div>';
+  }
+  function panList(rows) {
+    if (!rows.length) return '<div class="list"><div class="empty">Nothing here 🎉</div></div>';
+    return '<div class="list">' + rows.map(function (r) { return panItem(r); }).join('') + '</div>';
+  }
+  function panItem(r, withCheck) {
+    var tags = [];
+    if (r.ptpBroken) tags.push('<span class="pill red">' + r.ptpBroken + ' PTP broken</span>');
+    if (r.ptpDueToday) tags.push('<span class="pill amber">PTP due today</span>');
+    else if (r.ptpNext) tags.push('<span class="pill blue">PTP ' + fds(r.ptpNext) + '</span>');
+    if (r.nextFollowUp) tags.push('<span class="pill ' + (r.nextFollowUp <= today() ? 'amber' : '') + '">F/u ' + fds(r.nextFollowUp) + '</span>');
+    if (r.exposure === 'Yes') tags.push('<span class="pill red">Exposure</span>');
+    if (r.possibleArAp > 0) tags.push('<span class="pill purple">AR-AP ' + inr(r.possibleArAp) + '</span>');
+    if (r.today) tags.push('<span class="pill green">✓ ' + esc(r.today) + '</span>');
+    else if (r.daysSince === null) tags.push('<span class="pill">never touched</span>');
+    else if (r.daysSince >= 3) tags.push('<span class="pill amber">' + r.daysSince + 'd since f/u</span>');
+    return '<div class="item" data-pan="' + esc(r.pan) + '">' +
+      (withCheck ? '<input type="checkbox" class="bsel" data-p="' + esc(r.pan) + '"' + (S.bookSel[r.pan] ? ' checked' : '') + '>' : '') +
+      '<div class="main"><div class="name">' + esc(r.customer || r.pan) + '</div>' +
+      '<div class="sub">' + esc(r.pan) + (r.brands ? ' · ' + esc(r.brands) : '') + '</div>' +
+      '<div class="tags">' + tags.join('') + '</div></div>' +
+      '<div class="right"><div class="amt num">' + inr(r.overdue) + '</div><div class="sub num">&gt;60: ' + inr(r.gt60) + '</div>' +
+      '<div style="margin-top:3px">' + dots(r.recent) + '</div></div></div>';
+  }
+  function ptpList(list) {
+    if (!list.length) return '<div class="list"><div class="empty">Nothing here 🎉</div></div>';
+    return '<div class="list">' + list.map(function (p) {
+      return '<div class="item" data-pan="' + esc(p.pan) + '"><div class="main"><div class="name">' + esc(p.customer) + '</div>' +
+        '<div class="sub">' + esc(p.invoice) + ' · ' + esc(p.brand) + '</div>' +
+        '<div class="tags">' + statusPill(p.live) + (p.daysLate ? '<span class="pill red">' + p.daysLate + 'd late</span>' : '') + tagPill(p.tag) + '</div></div>' +
+        '<div class="right"><div class="amt num">' + inr(p.outstanding) + '</div><div class="sub">PTP ' + fds(p.ptpDate) + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  function bindPanClicks() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pan]'), function (el) {
+      el.addEventListener('click', function (e) {
+        if (e.target.classList.contains('bsel')) return;
+        var p = el.getAttribute('data-pan'); if (p) openPan(p);
+      });
+    });
+  }
+
+  // ---------- MY PANs ----------
+  var FILTERS = [
+    ['all', 'All', function () { return true; }],
+    ['overdue', 'Overdue', function (r) { return r.overdue > 0; }],
+    ['untouchedToday', 'Not done today', function (r) { return !r.today && r.overdue > 0; }],
+    ['stale', 'Untouched 3d+', function (r) { return r.overdue > 0 && (r.daysSince === null || r.daysSince >= 3); }],
+    ['gt60', '>60 days', function (r) { return r.gt60 > 0; }],
+    ['broken', 'PTP broken', function (r) { return r.ptpBroken > 0; }],
+    ['ptp', 'PTP open', function (r) { return r.ptpOpen > 0; }],
+    ['arap', 'AR-AP possible', function (r) { return r.possibleArAp > 0; }],
+    ['exposure', 'Exposure', function (r) { return r.exposure === 'Yes'; }],
+    ['notdue', 'Only not-due', function (r) { return r.overdue === 0 && r.b0 > 0; }],
+    ['credit', 'Credit balance', function (r) { return r.total < 0; }]
+  ];
+  var SORTS = {
+    priority: ['Priority', function (a, b) { return b.priority - a.priority; }],
+    overdue: ['Overdue ₹', function (a, b) { return b.overdue - a.overdue; }],
+    gt60: ['>60 ₹', function (a, b) { return b.gt60 - a.gt60; }],
+    total: ['Total ₹', function (a, b) { return b.total - a.total; }],
+    arap: ['AR-AP ₹', function (a, b) { return b.possibleArAp - a.possibleArAp; }],
+    stale: ['Days since f/u', function (a, b) { return (b.daysSince === null ? 999 : b.daysSince) - (a.daysSince === null ? 999 : a.daysSince); }],
+    name: ['Name A-Z', function (a, b) { return (a.customer || '').localeCompare(b.customer || ''); }]
+  };
+  function filteredBook() {
+    var f = FILTERS.filter(function (x) { return x[0] === S.filter; })[0] || FILTERS[0];
+    var q = S.q.toLowerCase();
+    var rows = S.book.rows.filter(function (r) {
+      if (!S.showAllRows && S.filter === 'all' && r.total === 0 && r.overdue === 0) return false;
+      if (!f[2](r)) return false;
+      if (!q) return true;
+      return (r.pan + ' ' + r.customer + ' ' + r.brands + ' ' + r.kams + ' ' + r.kamMgr).toLowerCase().indexOf(q) >= 0;
+    });
+    return rows.sort(SORTS[S.sort][1]);
+  }
+  function renderPans() {
+    var h = '<div class="search"><input id="q" placeholder="Search PAN, customer, brand, KAM…  (press /)" value="' + esc(S.q) + '">' +
+      '<select id="sort">' + Object.keys(SORTS).map(function (k) { return '<option value="' + k + '"' + (S.sort === k ? ' selected' : '') + '>' + SORTS[k][0] + '</option>'; }).join('') + '</select></div>';
+    h += '<div class="chips">' + FILTERS.map(function (f) {
+      var n = S.book.rows.filter(function (r) { return (f[0] !== 'all' || S.showAllRows || r.total !== 0 || r.overdue !== 0) && f[2](r); }).length;
+      return '<button class="chip' + (S.filter === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '<span class="n">' + n + '</span></button>';
+    }).join('') + '</div>';
+    h += '<div id="panResults"></div>';
+    $('view').innerHTML = h;
+    var q = $('q');
+    q.oninput = function () { S.q = q.value; renderPanResults(); };
+    $('sort').onchange = function () { S.sort = this.value; renderPanResults(); };
+    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
+      c.onclick = function () { S.filter = c.getAttribute('data-f'); renderPans(); };
+    });
+    renderPanResults();
+  }
+  function renderPanResults() {
+    var rows = filteredBook();
+    var sum = function (k) { return rows.reduce(function (s, r) { return s + (r[k] || 0); }, 0); };
+    var nSel = Object.keys(S.bookSel).filter(function (k) { return S.bookSel[k]; }).length;
+    var h = '<div class="two muted" style="font-size:12px;margin-bottom:6px"><span>' + rows.length + ' PANs · overdue <b class="num">' + inr(sum('overdue')) +
+      '</b> · &gt;60 <b class="num">' + inr(sum('gt60')) + '</b></span>' +
+      '<label class="check" style="margin:0"><input type="checkbox" id="showZero"' + (S.showAllRows ? ' checked' : '') + '> show zero-balance</label></div>';
+    if (MODE === 'full') {
+      h += '<div class="table-wrap" style="max-height:calc(100vh - 250px)"><table><thead><tr><th><input type="checkbox" id="bAll"></th><th>Customer / PAN</th><th>Brands</th><th>Biz model</th>' +
+        '<th class="r">Not due</th><th class="r">0-60</th><th class="r">61-150</th><th class="r">&gt;150</th><th class="r">Overdue</th><th class="r">Net payable</th><th class="r">AR-AP</th>' +
+        '<th>Last 7d</th><th>Status</th><th>Remarks</th></tr></thead><tbody>' +
+        rows.slice(0, 600).map(function (r) {
+          return '<tr class="clickable" data-pan="' + esc(r.pan) + '"><td><input type="checkbox" class="bsel" data-p="' + esc(r.pan) + '"' + (S.bookSel[r.pan] ? ' checked' : '') + '></td>' +
+            '<td><b>' + esc(r.customer) + '</b><div class="faint" style="font-size:11px">' + esc(r.pan) + (r.exposure === 'Yes' ? ' · <span style="color:var(--red)">Exposure</span>' : '') + '</div></td>' +
+            '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.brands) + '">' + esc(r.brands) + '</td><td>' + esc(r.bizModel) + '</td>' +
+            '<td class="r num">' + inr(r.b0) + '</td><td class="r num">' + inr(r.b1 + r.b2) + '</td><td class="r num">' + inr(r.b3 + r.b4 + r.b5) + '</td><td class="r num">' + inr(r.b6) + '</td>' +
+            '<td class="r num"><b>' + inr(r.overdue) + '</b></td><td class="r num">' + inr(r.netPayable) + '</td><td class="r num">' + inr(r.possibleArAp) + '</td>' +
+            '<td>' + dots(r.recent) + '</td><td>' + (r.ptpBroken ? '<span class="pill red">PTP broken</span> ' : '') + (r.ptpNext ? '<span class="pill blue">PTP ' + fds(r.ptpNext) + '</span> ' : '') +
+            (r.today ? '<span class="pill green">✓ ' + esc(r.today) + '</span>' : r.daysSince === null ? '<span class="pill">never</span>' : r.daysSince >= 3 ? '<span class="pill amber">' + r.daysSince + 'd</span>' : '') + '</td>' +
+            '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.remarks) + '">' + esc(r.remarks) + '</td></tr>';
+        }).join('') + '</tbody></table>' + (rows.length > 600 ? '<div class="empty">Showing first 600 – refine the search</div>' : '') + '</div>';
+    } else {
+      h += rows.length ? '<div class="list">' + rows.slice(0, 250).map(function (r) { return panItem(r, true); }).join('') + '</div>' +
+        (rows.length > 250 ? '<div class="empty">Showing first 250 – refine the search</div>' : '') : '<div class="list"><div class="empty">No PANs match</div></div>';
+    }
+    h += '<div class="legend"><span><i class="dot d-yes"></i>Yes</span><span><i class="dot d-ptp"></i>PTP</span><span><i class="dot d-exp"></i>Expected pmt</span><span><i class="dot d-nd"></i>Not due</span><span><i class="dot d-no"></i>No</span><span><i class="dot d-leave"></i>Leave/Holiday</span></div>';
+    if (nSel) {
+      h += '<div class="selbar"><b>' + nSel + ' selected</b><span style="flex:1"></span>' + S.init.dailyValues.map(function (v) {
+        return '<button class="btn sm" data-bulk="' + esc(v) + '">' + esc(v) + '</button>';
+      }).join('') + '<button class="btn sm" id="bClear">✕</button></div>';
+    }
+    $('panResults').innerHTML = h;
+    bindPanClicks();
+    $('showZero').onchange = function () { S.showAllRows = this.checked; renderPans(); };
+    Array.prototype.forEach.call(document.querySelectorAll('.bsel'), function (c) {
+      c.onclick = function (e) { e.stopPropagation(); S.bookSel[c.getAttribute('data-p')] = c.checked; renderPanResults(); };
+    });
+    var all = $('bAll');
+    if (all) all.onclick = function () { rows.forEach(function (r) { S.bookSel[r.pan] = all.checked; }); renderPanResults(); };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-bulk]'), function (b) {
+      b.onclick = function () {
+        var pans = Object.keys(S.bookSel).filter(function (k) { return S.bookSel[k]; });
+        var v = b.getAttribute('data-bulk');
+        call('wbBulkDaily', S.me, pans, v).then(function (r) {
+          toast(r.count + ' PANs marked "' + v + '" for today');
+          S.book.rows.forEach(function (x) { if (S.bookSel[x.pan]) { x.today = v; x.recent[0] = v; } });
+          S.bookSel = {}; renderPanResults();
+        }).catch(fail);
+      };
+    });
+    var bc = $('bClear'); if (bc) bc.onclick = function () { S.bookSel = {}; renderPanResults(); };
+  }
+
+  // ---------- PAN DETAIL ----------
+  function openPan(pan) {
+    S.pan = pan; S.sel = {}; setTabs();
+    loading('Opening ' + pan + ' · pulling invoices…');
+    call('wbGetPan', S.me, pan).then(function (d) {
+      if (S.pan !== pan) return;
+      S.panData = d; renderPan();
+    }).catch(fail);
+  }
+  function selInvoices() { return S.panData.invoices.filter(function (i) { return S.sel[i.inv]; }); }
+  function renderPan() {
+    var d = S.panData, h = d.header || {}, t = today();
+    var inv = d.invoices.slice();
+    var k = S.invSort.k, dir = S.invSort.d;
+    inv.sort(function (a, b) { var x = a[k], y = b[k]; if (x === y) return 0; return (x > y ? 1 : -1) * dir; });
+    var sel = selInvoices();
+    var selAmt = sel.reduce(function (s, i) { return s + i.net; }, 0);
+    var openAmt = inv.reduce(function (s, i) { return s + i.net; }, 0);
+    var overdueAmt = inv.filter(function (i) { return i.overdue; }).reduce(function (s, i) { return s + i.net; }, 0);
+    var mine = d.owner === S.me;
+    var out = '<button class="back" id="back">← Back to ' + ({ today: 'Today', pans: 'My PANs', ptps: 'PTPs', stats: 'Productivity' }[S.tab]) + '</button>';
+    out += '<div class="detail-grid"><div>';
+    // Header card
+    out += '<div class="card"><div class="title">' + esc(d.customer || d.pan) + '</div><div class="muted" style="margin-bottom:6px">' + esc(d.pan) +
+      (d.owner && !mine ? ' · <span class="pill amber">Owned by ' + esc(d.owner) + '</span>' : '') + '</div>';
+    out += '<div class="tags" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">' +
+      (h.exposure === 'Yes' ? '<span class="pill red">Exposure / defaulting</span>' : '') +
+      (h.arApHist === 'Yes' ? '<span class="pill purple">AR-AP done before</span>' : '') +
+      (h.poe === 'Yes' ? '<span class="pill amber">POE required</span>' : '') +
+      (h.bizModel ? '<span class="pill">' + esc(h.bizModel) + '</span>' : '') +
+      (h.ioIncentive ? '<span class="pill green">IO: ' + esc(h.ioIncentive) + '</span>' : '') + '</div>';
+    out += '<div class="grid" style="margin-bottom:8px">' +
+      kpi('Overdue', inr(h.overdue != null ? h.overdue : overdueAmt), inv.filter(function (i) { return i.overdue; }).length + ' invoices') +
+      kpi('Total receivable', inr(h.total != null ? h.total : openAmt), inv.length + ' open invoices') +
+      kpi('Net payable (AP)', inr(h.netPayable || 0), 'we owe them') +
+      kpi('Possible AR-AP', inr(h.possibleArAp || 0), '>60: ' + inr(h.possibleArAp60 || 0)) + '</div>';
+    if (d.header) out += ageBar(h);
+    out += '</div>';
+    // Info
+    out += '<div class="card"><h3>Quick actions</h3><div class="actions">' +
+      '<button class="btn primary" id="aLog">📞 Log follow-up</button>' +
+      '<button class="btn" id="aPtp">🤝 Mark PTP</button>' +
+      '<button class="btn" id="aMail">✉️ Reminder e-mail</button>' +
+      '<button class="btn" id="aTag">🏷️ Tag invoices</button>' +
+      '<button class="btn" id="aSheet" title="Jump to this PAN in the tracker tab">↗ Go to row</button></div></div>';
+    out += '<div class="card"><h3>Relationship <span class="faint" style="text-transform:none;letter-spacing:0">tap a line to expand</span></h3><div class="kv">' +
+      kv('Brands', h.brands) + kv('KAMs', h.kams) + kv('KAM managers', h.kamMgr) + kv('BU head', h.buHead) +
+      kv('Category heads', [h.cat1, h.cat2].filter(Boolean).join(' / ')) + kv('BizFin SPOC', h.bizfin) + kv('Due months', h.months) + '</div></div>';
+    // Remarks + follow-up strip
+    out += '<div class="card"><h3>Remarks <button class="btn sm" id="editRemark">Edit</button></h3>' +
+      '<div id="remarkText">' + (h.remarks ? esc(h.remarks) : '<span class="faint">No remark yet</span>') + '</div>' +
+      (h.tlRemarks ? '<div style="margin-top:8px;padding:6px 8px;background:var(--amber-soft);border-radius:6px"><b style="font-size:11px;color:var(--amber)">TEAM LEAD</b><div>' + esc(h.tlRemarks) + '</div></div>' : '') +
+      (h.recentDates ? '<div style="margin-top:10px"><div class="faint" style="font-size:11px;margin-bottom:3px">Follow-up log · last 14 days</div><div style="display:flex;gap:3px;flex-wrap:wrap">' +
+        h.recentDates.slice().reverse().map(function (dk) {
+          var v = (h.daily || {})[dk] || '';
+          return '<div title="' + fd(dk) + ': ' + esc(v || 'blank') + '" style="text-align:center;font-size:9px;color:var(--faint)"><i class="dot ' + dc(v) + '" style="display:block;width:14px;height:14px;margin:0 auto 1px"></i>' + dk.slice(8) + '</div>';
+        }).join('') + '</div></div>' : '') + '</div>';
+    out += '</div><div>';
+    // Invoices
+    out += '<div class="section-title" style="margin-top:0"><span>Open invoices (' + inv.length + ') · <span class="num">' + inr(openAmt, true) + '</span></span>' +
+      '<span class="actions"><button class="btn sm" id="sOver">Select overdue</button><button class="btn sm" id="sNone">Clear</button></span></div>';
+    if (!inv.length) out += '<div class="list"><div class="empty">No open invoices for this PAN in Imported_Data</div></div>';
+    else if (MODE === 'full') {
+      var th = function (key, label, r) { return '<th class="' + (r ? 'r' : '') + '" data-sort="' + key + '">' + label + (S.invSort.k === key ? (S.invSort.d > 0 ? ' ▲' : ' ▼') : '') + '</th>'; };
+      out += '<div class="table-wrap" style="max-height:calc(100vh - 330px)"><table><thead><tr><th><input type="checkbox" id="iAll"></th>' +
+        th('inv', 'Invoice') + th('invDate', 'Inv date') + th('dueDate', 'Due date') + th('brand', 'Brand') + th('month', 'Activity month') +
+        th('ageing', 'Days', 1) + th('bucket', 'Bucket') + th('tds', 'TDS', 1) + th('receipt', 'Received', 1) + th('net', 'Outstanding', 1) +
+        th('ptpDate', 'PTP') + th('ptpStatus', 'Status') + th('tag', 'Tag') + '</tr></thead><tbody>' +
+        inv.map(function (i) {
+          return '<tr class="' + (S.sel[i.inv] ? 'sel' : '') + '"><td><input type="checkbox" class="isel" data-i="' + esc(i.inv) + '"' + (S.sel[i.inv] ? ' checked' : '') + '></td>' +
+            '<td><b>' + esc(i.inv) + '</b></td><td>' + fd(i.invDate) + '</td><td>' + fd(i.dueDate) + '</td><td>' + esc(i.brand) + '</td><td>' + esc(i.month) + '</td>' +
+            '<td class="r num">' + (i.ageing || 0) + '</td><td><span class="pill ' + bucketCls(i.bucket) + '">' + esc(i.bucket.replace(/^[a-g]\./, '')) + '</span></td>' +
+            '<td class="r num">' + inr(i.tds) + '</td><td class="r num">' + inr(i.receipt) + '</td><td class="r num"><b>' + inr(i.net, true) + '</b></td>' +
+            '<td>' + (i.ptpDate ? fd(i.ptpDate) + (i.ptpAmount !== '' && i.ptpAmount !== i.net ? '<div class="faint" style="font-size:11px">' + inr(i.ptpAmount) + '</div>' : '') : '') + '</td>' +
+            '<td>' + statusPill(i.ptpStatus && i.ptpStatus !== 'PTP Pending' ? i.ptpStatus : (i.bucket === 'a.Not Due' ? 'Not due' : '')) + '</td><td>' + tagPill(i.tag) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    } else {
+      out += '<div class="list">' + inv.map(function (i) {
+        return '<label class="inv' + (S.sel[i.inv] ? ' sel' : '') + '"><input type="checkbox" class="isel" data-i="' + esc(i.inv) + '"' + (S.sel[i.inv] ? ' checked' : '') + '>' +
+          '<div class="main"><div class="two"><b>' + esc(i.inv) + '</b><b class="num">' + inr(i.net, true) + '</b></div>' +
+          '<div class="two sub muted" style="font-size:11px"><span>Inv ' + fds(i.invDate) + ' · due ' + fd(i.dueDate) + '</span><span>' + (i.ageing || 0) + 'd</span></div>' +
+          '<div class="tags" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px"><span class="pill ' + bucketCls(i.bucket) + '">' + esc(i.bucket.replace(/^[a-g]\./, '')) + '</span>' +
+          (i.brand ? '<span class="pill">' + esc(i.brand) + '</span>' : '') +
+          (i.ptpDate ? '<span class="pill blue">PTP ' + fds(i.ptpDate) + '</span>' : '') +
+          (i.ptpStatus && i.ptpStatus !== 'PTP Pending' && i.ptpStatus !== 'PTP Given' ? statusPill(i.ptpStatus) : '') + tagPill(i.tag) + '</div></div></label>';
+      }).join('') + '</div>';
+    }
+    if (sel.length) {
+      out += '<div class="selbar"><b>' + sel.length + ' selected · <span class="num">' + inr(selAmt, true) + '</span></b><span style="flex:1"></span>' +
+        '<button class="btn sm primary" id="bPtp">🤝 PTP</button><button class="btn sm" id="bTag">🏷️ Tag</button>' +
+        '<button class="btn sm" id="bMail">✉️ Mail</button><button class="btn sm" id="bClearPtp">Clear PTP</button></div>';
+    }
+    // Paid + history
+    out += '<details style="margin-top:12px"><summary>Recently settled invoices (' + d.paid.length + ')</summary><div class="list" style="margin-top:6px">' +
+      (d.paid.length ? d.paid.map(function (p) {
+        return '<div class="inv"><div class="main"><div class="two"><b>' + esc(p.inv) + '</b><span class="num">' + inr(p.receipt, true) + '</span></div>' +
+          '<div class="sub muted" style="font-size:11px">Inv ' + fd(p.invDate) + ' · due ' + fd(p.dueDate) + (p.receiptDate ? ' · received ' + fd(p.receiptDate) : '') +
+          (p.arap ? ' · AR-AP ' + inr(p.arap) : '') + (p.tds ? ' · TDS ' + inr(p.tds) : '') + '</div></div></div>';
+      }).join('') : '<div class="empty">None found</div>') + '</div></details>';
+    out += '<div class="section-title">Activity history (' + d.history.length + ')</div><div class="card"><div class="timeline">' +
+      (d.history.length ? d.history.map(function (l) {
+        return '<div class="tl ' + esc(l.type) + '"><div class="h">' + fd(l.date) + ' · <b>' + esc(l.type) + '</b> · ' + esc(l.assoc) + '</div>' +
+          '<div>' + esc(l.outcome) + (l.amount ? ' · <span class="num">' + inr(l.amount) + '</span>' : '') + (l.next ? ' · next ' + fd(l.next) : '') + '</div>' +
+          (l.remarks ? '<div class="muted">' + esc(l.remarks) + '</div>' : '') +
+          (l.invoices ? '<div class="faint" style="font-size:11px;overflow-wrap:anywhere">' + esc(l.invoices) + '</div>' : '') + '</div>';
+      }).join('') : '<div class="faint">No activity logged through the workbench yet.</div>') + '</div></div>';
+    out += '</div></div>';
+    $('view').innerHTML = out;
+    window.scrollTo(0, 0);
+    // bindings
+    $('back').onclick = function () { S.pan = null; go(S.tab); };
+    Array.prototype.forEach.call(document.querySelectorAll('.isel'), function (c) {
+      c.onclick = function (e) { e.stopPropagation(); S.sel[c.getAttribute('data-i')] = c.checked; renderPanKeepScroll(); };
+    });
+    var ia = $('iAll'); if (ia) { ia.checked = sel.length && sel.length === inv.length; ia.onclick = function () { inv.forEach(function (i) { S.sel[i.inv] = ia.checked; }); renderPanKeepScroll(); }; }
+    Array.prototype.forEach.call(document.querySelectorAll('th[data-sort]'), function (th) {
+      th.onclick = function () { var key = th.getAttribute('data-sort'); S.invSort = { k: key, d: S.invSort.k === key ? -S.invSort.d : -1 }; renderPanKeepScroll(); };
+    });
+    $('sOver').onclick = function () { S.sel = {}; inv.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; }); renderPanKeepScroll(); };
+    $('sNone').onclick = function () { S.sel = {}; renderPanKeepScroll(); };
+    $('aLog').onclick = followUpForm;
+    $('aPtp').onclick = function () { if (!selInvoices().length) inv.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; }); ptpForm(); };
+    $('aMail').onclick = mailForm;
+    $('aTag').onclick = function () { if (!selInvoices().length) return toast('Tick the invoices to tag first'); tagForm(); };
+    $('aSheet').onclick = function () {
+      call('wbGoToRow', d.owner || S.me, d.pan).then(function (ok) { toast(ok ? 'Row selected in the "' + (d.owner || S.me) + '" tab' : 'PAN not found in the tab'); }).catch(fail);
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('.kv div:nth-child(even)'), function (x) { x.onclick = function () { x.classList.toggle('open'); }; });
+    $('editRemark').onclick = remarkForm;
+    if ($('bPtp')) {
+      $('bPtp').onclick = ptpForm; $('bTag').onclick = tagForm; $('bMail').onclick = mailForm;
+      $('bClearPtp').onclick = function () {
+        if (!confirm('Clear the PTP on ' + selInvoices().length + ' invoice(s)?')) return;
+        submit('wbTagInvoices', base({ invoices: selInvoices().map(function (i) { return i.inv; }), clearPtp: true }), 'PTP cleared');
+      };
+    }
+  }
+  function renderPanKeepScroll() { var y = window.scrollY; var tw = document.querySelector('.table-wrap'); var ty = tw ? tw.scrollTop : 0; renderPan(); window.scrollTo(0, y); tw = document.querySelector('.table-wrap'); if (tw) tw.scrollTop = ty; }
+  function bucketCls(b) { var i = BUCKET_OF[b]; return i === 0 ? '' : i <= 2 ? 'green' : i <= 4 ? 'amber' : 'red'; }
+  function kv(k, v) { return v ? '<div>' + esc(k) + '</div><div>' + esc(v) + '</div>' : ''; }
+  function base(extra) {
+    var o = { assoc: S.panData.owner || S.me, pan: S.panData.pan, customer: S.panData.customer };
+    Object.keys(extra || {}).forEach(function (k) { o[k] = extra[k]; });
+    return o;
+  }
+  function submit(fn, payload, okMsg) {
+    var btn = document.querySelector('#modal .btn.primary'); if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    return call(fn, payload).then(function (r) {
+      closeModal(); toast(okMsg + (r && r.count ? ' · ' + r.count + ' invoice(s)' : ''));
+      S.book = null; S.ptps = null; S.sel = {};
+      openPan(S.panData.pan);
+      return r;
+    }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = 'Save'; } fail(e); });
+  }
+
+  // ---------- Forms ----------
+  function modal(html) {
+    $('modal').innerHTML = '<div class="overlay" id="ov"><div class="sheet">' + html + '</div></div>';
+    $('ov').onclick = function (e) { if (e.target.id === 'ov') closeModal(); };
+    Array.prototype.forEach.call(document.querySelectorAll('#modal [data-close]'), function (b) { b.onclick = closeModal; });
+    Array.prototype.forEach.call(document.querySelectorAll('#modal [data-date]'), function (b) {
+      b.onclick = function () { $(b.getAttribute('data-for')).value = b.getAttribute('data-date'); };
+    });
+    var f = document.querySelector('#modal input, #modal select, #modal textarea'); if (f) f.focus();
+  }
+  function closeModal() { $('modal').innerHTML = ''; }
+  function quickDates(forId) {
+    var t = today();
+    var opts = [['Today', t], ['Tomorrow', nextWorkday(t)], ['+3d', addDays(t, 3)], ['Fri', nextWeekday(t, 5)], ['Mon', nextWeekday(t, 1)], ['+7d', addDays(t, 7)], ['Month end', t.slice(0, 8) + String(new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7), 0)).getUTCDate())]];
+    return '<div class="quick">' + opts.map(function (o) { return '<button type="button" class="btn sm" data-for="' + forId + '" data-date="' + o[1] + '">' + o[0] + '</button>'; }).join('') + '</div>';
+  }
+  function ptpForm() {
+    var sel = selInvoices();
+    if (!sel.length) return toast('Tick the invoices the customer promised to pay');
+    var total = sel.reduce(function (s, i) { return s + i.net; }, 0);
+    modal('<h2>🤝 Promise to pay · ' + sel.length + ' invoice(s) · ' + inr(total, true) + '</h2>' +
+      '<div class="field"><label>PTP date</label><input type="date" id="fDate" min="' + today() + '" value="' + nextWorkday(today()) + '">' + quickDates('fDate') + '</div>' +
+      '<div class="field"><label>Amount per invoice (edit for part payment)</label>' + sel.map(function (i) {
+        return '<div class="amt-row"><span><b>' + esc(i.inv) + '</b> <span class="faint">' + (i.ageing || 0) + 'd · ' + esc(i.brand) + '</span></span><input type="number" class="fAmt" data-i="' + esc(i.inv) + '" value="' + i.net + '"></div>';
+      }).join('') + '<div class="amt-row"><b>Total promised</b><b class="num" id="fTot">' + inr(total, true) + '</b></div></div>' +
+      '<div class="grid"><div class="field"><label>Payment mode</label><select id="fMode"><option>NEFT / RTGS</option><option>AR-AP adjustment</option><option>Cheque</option><option>UPI</option><option>Other</option></select></div>' +
+      '<div class="field"><label>Contact person</label><input id="fContact" placeholder="Name / phone"></div></div>' +
+      '<div class="field"><label>Remarks</label><textarea id="fRem" placeholder="e.g. Finance approved, payment run on Friday"></textarea></div>' +
+      '<label class="check"><input type="checkbox" id="fDaily" checked> Mark today as <b>PTP</b> in my tracker</label>' +
+      '<label class="check"><input type="checkbox" id="fRemark" checked> Update PAN remark</label>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save PTP</button></div>');
+    var recalc = function () { var s = 0; Array.prototype.forEach.call(document.querySelectorAll('.fAmt'), function (x) { s += Number(x.value) || 0; }); $('fTot').textContent = inr(s, true); };
+    Array.prototype.forEach.call(document.querySelectorAll('.fAmt'), function (x) { x.oninput = recalc; });
+    $('fSave').onclick = function () {
+      var amounts = {};
+      Array.prototype.forEach.call(document.querySelectorAll('.fAmt'), function (x) { amounts[x.getAttribute('data-i')] = x.value; });
+      if (!$('fDate').value) return toast('Pick a PTP date', true);
+      submit('wbSavePtp', base({
+        invoices: sel.map(function (i) { return i.inv; }), ptpDate: $('fDate').value, amounts: amounts,
+        mode: $('fMode').value, contact: $('fContact').value, remarks: $('fRem').value,
+        markDaily: $('fDaily').checked, updateRemark: $('fRemark').checked
+      }), 'PTP saved');
+    };
+  }
+  var OUTCOMES = ['Connected – PTP given', 'Connected – payment in process', 'Connected – asked for SOA / invoices', 'Connected – dispute raised',
+    'Connected – awaiting internal approval', 'Connected – AR-AP to be proposed', 'Callback requested', 'Not reachable / no response', 'Paid – awaiting UTR / remittance', 'Escalated to KAM', 'Other'];
+  function followUpForm() {
+    modal('<h2>📞 Log follow-up · ' + esc(S.panData.customer) + '</h2>' +
+      '<div class="field"><label>Channel</label><div class="quick" id="fCh">' + ['Call', 'Email', 'WhatsApp', 'Meeting', 'KAM connect'].map(function (c, i) {
+        return '<button type="button" class="chip' + (i === 0 ? ' on' : '') + '" data-ch="' + c + '">' + c + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="field"><label>Outcome</label><select id="fOut">' + OUTCOMES.map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><label>Notes</label><textarea id="fRem" placeholder="What did they say?"></textarea></div>' +
+      '<div class="field"><label>Next follow-up</label><input type="date" id="fNext" value="' + nextWorkday(today()) + '">' + quickDates('fNext') + '</div>' +
+      '<div class="field"><label>Today’s status in my tracker</label><select id="fDaily">' + S.init.dailyValues.map(function (v) { return '<option' + (v === 'Yes' ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '<option value="">(leave as is)</option></select></div>' +
+      '<label class="check"><input type="checkbox" id="fRemark" checked> Update PAN remark (shows in Consolidated)</label>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
+    var ch = 'Call';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ch]'), function (b) {
+      b.onclick = function () { ch = b.getAttribute('data-ch'); Array.prototype.forEach.call(document.querySelectorAll('[data-ch]'), function (x) { x.classList.toggle('on', x === b); }); };
+    });
+    $('fOut').onchange = function () {
+      if (/PTP given/.test(this.value)) { closeModal(); if (!selInvoices().length) S.panData.invoices.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; }); ptpForm(); }
+    };
+    $('fSave').onclick = function () {
+      submit('wbLogFollowUp', base({ channel: ch, outcome: $('fOut').value, remarks: $('fRem').value, nextDate: $('fNext').value, daily: $('fDaily').value, updateRemark: $('fRemark').checked }), 'Follow-up logged');
+    };
+  }
+  function tagForm() {
+    var sel = selInvoices();
+    modal('<h2>🏷️ Tag ' + sel.length + ' invoice(s)</h2>' +
+      '<div class="field"><label>Tag</label><select id="fTag">' + S.init.invoiceTags.map(function (t) { return '<option value="' + esc(t) + '">' + (t ? esc(t) : '(remove tag)') + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><label>Remarks</label><textarea id="fRem" placeholder="e.g. Short supply dispute – debit note 12k"></textarea></div>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
+    $('fSave').onclick = function () {
+      submit('wbTagInvoices', base({ invoices: sel.map(function (i) { return i.inv; }), tag: $('fTag').value, remarks: $('fRem').value }), 'Invoices tagged');
+    };
+  }
+  function mailForm() {
+    var sel = selInvoices();
+    var list = sel.length ? sel : S.panData.invoices.filter(function (i) { return i.overdue; });
+    if (!list.length) list = S.panData.invoices;
+    var total = list.reduce(function (s, i) { return s + i.net; }, 0);
+    modal('<h2>✉️ Payment reminder draft</h2><p class="muted">A Gmail draft is created with a statement of <b>' + list.length + '</b> invoice(s) · <b>' + inr(total, true) +
+      '</b>. It is logged as an e-mail follow-up and marks today as “Yes”.</p>' +
+      '<div class="field"><label>To</label><input id="fTo" placeholder="accounts@customer.com"></div>' +
+      '<div class="field"><label>Cc</label><input id="fCc" placeholder="KAM / manager"></div>' +
+      '<div class="field"><label>Addressee name</label><input id="fName" placeholder="Team"></div>' +
+      '<div class="field"><label>Closing line</label><textarea id="fNote">Request you to share the payment date / remittance details at the earliest.</textarea></div>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Create draft</button></div>');
+    $('fSave').onclick = function () {
+      var btn = this; btn.disabled = true; btn.textContent = 'Creating…';
+      call('wbCreateEmailDraft', base({ invoices: list.map(function (i) { return i.inv; }), to: $('fTo').value, cc: $('fCc').value, contact: $('fName').value, note: $('fNote').value }))
+        .then(function (r) {
+          closeModal();
+          modal('<h2>Draft ready ✅</h2><p>' + r.count + ' invoices · ' + inr(r.total, true) + '</p><div class="form-actions"><button class="btn" data-close>Close</button><a class="btn primary" target="_blank" href="' + esc(r.link) + '">Open Gmail drafts</a></div>');
+          S.book = null; openPan(S.panData.pan);
+        }).catch(function (e) { btn.disabled = false; btn.textContent = 'Create draft'; fail(e); });
+    };
+  }
+  function remarkForm() {
+    var h = S.panData.header || {};
+    modal('<h2>Edit remark</h2><div class="field"><textarea id="fRem" style="min-height:110px">' + esc(h.remarks || '') + '</textarea></div>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
+    $('fSave').onclick = function () {
+      var v = $('fRem').value;
+      call('wbSaveRemark', S.panData.owner || S.me, S.panData.pan, v).then(function () {
+        closeModal(); toast('Remark saved'); if (S.panData.header) S.panData.header.remarks = v; renderPan();
+      }).catch(fail);
+    };
+  }
+
+  // ---------- PTPs ----------
+  function renderPtps() {
+    var rows = S.ptps.rows;
+    var groups = [
+      ['🔴 Broken', function (p) { return p.live === 'PTP Broken'; }],
+      ['📅 Due today', function (p) { return p.live === 'PTP Due Today'; }],
+      ['🟡 Partially paid', function (p) { return p.live === 'Partially Paid'; }],
+      ['🔵 Upcoming', function (p) { return p.live === 'PTP Given'; }],
+      ['🏷️ Tagged, no PTP', function (p) { return !p.ptpDate && p.tag && p.outstanding > 0; }],
+      ['✅ Paid', function (p) { return /^Paid/.test(p.live) && p.ptpDate; }]
+    ];
+    var sum = function (arr) { return arr.reduce(function (s, p) { return s + (p.outstanding || 0); }, 0); };
+    var h = '<div class="grid k4" style="margin-bottom:10px">' + groups.slice(0, 4).map(function (g) {
+      var a = rows.filter(g[1]); return kpi(g[0], a.length, inr(sum(a)));
+    }).join('') + '</div>';
+    groups.forEach(function (g) {
+      var a = rows.filter(g[1]);
+      if (!a.length) return;
+      if (MODE === 'full') {
+        h += '<div class="section-title">' + g[0] + ' (' + a.length + ')</div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Invoice</th><th>Brand</th><th>Due date</th>' +
+          '<th>PTP date</th><th class="r">Promised</th><th class="r">Outstanding</th><th>Status</th><th>Tag</th><th>Mode</th><th>Contact</th><th>Remarks</th></tr></thead><tbody>' +
+          a.map(function (p) {
+            return '<tr class="clickable" data-pan="' + esc(p.pan) + '"><td><b>' + esc(p.customer) + '</b></td><td>' + esc(p.invoice) + '</td><td>' + esc(p.brand) + '</td><td>' + fd(p.dueDate) + '</td>' +
+              '<td>' + fd(p.ptpDate) + (p.daysLate ? ' <span class="pill red">' + p.daysLate + 'd late</span>' : '') + '</td><td class="r num">' + (p.ptpAmount !== '' ? inr(p.ptpAmount) : '') + '</td>' +
+              '<td class="r num">' + inr(p.outstanding) + '</td><td>' + statusPill(p.live) + '</td><td>' + tagPill(p.tag) + '</td><td>' + esc(p.mode) + '</td><td>' + esc(p.contact) + '</td><td>' + esc(p.remarks) + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      } else {
+        h += section(g[0], a.length, ptpList(a.slice(0, 50)), '');
+      }
+    });
+    if (!rows.length) h += '<div class="card"><div class="empty">No PTPs yet. Open a PAN, tick invoices and press 🤝 PTP.</div></div>';
+    $('view').innerHTML = h;
+    bindPanClicks();
+  }
+
+  // ---------- Productivity ----------
+  function renderStats() {
+    var d = S.stats, m = d.mine || {}, a = d.acts, p = d.ptp;
+    var n = function (o) { return Object.keys(o).reduce(function (s, k) { return s + o[k]; }, 0); };
+    var h = '<div class="grid k6" style="margin-bottom:10px">' +
+      kpi('Coverage today', pct(m.todayCov), (m.touchedToday || 0) + ' of ' + (m.active || 0) + ' PANs') +
+      kpi('Coverage MTD (avg/day)', pct(m.mtdCov), 'days elapsed this month') +
+      kpi('Activities today', n(a.today), n(a.week) + ' this week · ' + n(a.month) + ' MTD') +
+      kpi('PTPs given', p.given, inr(p.givenAmt)) +
+      kpi('PTP kept rate', pct(p.keptRate), p.kept + ' kept · ' + p.broken + ' broken') +
+      kpi('Untouched 3d+', m.untouched3 || 0, 'PANs with balance') + '</div>';
+    h += '<div class="cols2"><div class="card"><h3>Daily coverage · last 3 weeks</h3>' + trendChart(m.trend || []) +
+      '<div class="legend"><span><i class="dot d-yes"></i>Yes</span><span><i class="dot d-ptp"></i>PTP</span><span><i class="dot d-exp"></i>Expected pmt</span><span><i class="dot d-nd"></i>Not due</span><span><i class="dot d-no"></i>No</span></div></div>';
+    h += '<div class="card"><h3>Activity mix</h3>' + actTable(a) +
+      '<h3 style="margin-top:12px">PTP outcomes</h3><div class="kv">' +
+      '<div>Open</div><div class="num">' + p.open + ' · ' + inr(p.openAmt) + (p.partial ? ' (' + p.partial + ' part-paid)' : '') + '</div>' +
+      '<div>Paid on/before PTP</div><div class="num">' + p.kept + '</div><div>Paid after PTP</div><div class="num">' + p.missed + '</div>' +
+      '<div>Collected vs PTP</div><div class="num">' + inr(p.keptAmt) + '</div>' +
+      '<div>Broken</div><div class="num">' + p.broken + ' · ' + inr(p.brokenAmt) + '</div></div></div></div>';
+    h += '<div class="section-title">Team leaderboard</div><div class="table-wrap"><table><thead><tr><th>#</th><th>Associate</th><th class="r">Active PANs</th><th class="r">Today</th><th class="r">MTD coverage</th>' +
+      '<th class="r">Untouched 3d+</th><th class="r">Activities MTD</th><th class="r">Overdue</th><th class="r">&gt;60</th></tr></thead><tbody>' +
+      d.team.map(function (t, i) {
+        return '<tr class="' + (t.assoc === S.me ? 'lb-me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(t.assoc) + '</td><td class="r num">' + t.active + '</td>' +
+          '<td class="r num">' + pct(t.todayCov) + '</td><td class="r num">' + pct(t.mtdCov) + '<div class="progress"><div style="width:' + Math.round(t.mtdCov * 100) + '%"></div></div></td>' +
+          '<td class="r num">' + t.untouched3 + '</td><td class="r num">' + t.actsMtd + '</td><td class="r num">' + inr(t.overdue) + '</td><td class="r num">' + inr(t.gt60) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    $('view').innerHTML = h;
+  }
+  function actTable(a) {
+    var types = {};
+    ['today', 'week', 'month'].forEach(function (k) { Object.keys(a[k]).forEach(function (t) { types[t] = 1; }); });
+    var keys = Object.keys(types);
+    if (!keys.length) return '<div class="faint">No workbench activity logged yet this month.</div>';
+    return '<table><thead><tr><th>Type</th><th class="r">Today</th><th class="r">Week</th><th class="r">MTD</th></tr></thead><tbody>' +
+      keys.map(function (t) { return '<tr><td>' + esc(t) + '</td><td class="r num">' + (a.today[t] || 0) + '</td><td class="r num">' + (a.week[t] || 0) + '</td><td class="r num">' + (a.month[t] || 0) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  function trendChart(trend) {
+    if (!trend.length) return '<div class="faint">No data</div>';
+    var W = 520, H = 150, pad = 22, bw = (W - pad) / trend.length;
+    var order = [['Yes', '#34a853'], ['PTP', '#1a73e8'], ['Expected Payment', '#7b1fa2'], ['Invoice Not Due', '#9aa0a6'], ['No', '#ea4335']];
+    var max = Math.max.apply(null, trend.map(function (t) { return order.reduce(function (s, o) { return s + (t.counts[o[0]] || 0); }, 0); }).concat([1]));
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + (H + 20) + '" width="100%" role="img" aria-label="Daily follow-up coverage">';
+    svg += '<line x1="' + pad + '" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#e3e6ea"/>';
+    svg += '<text x="0" y="10" font-size="9" fill="#8a94a3">' + max + '</text><text x="0" y="' + H + '" font-size="9" fill="#8a94a3">0</text>';
+    trend.forEach(function (t, i) {
+      var x = pad + i * bw + 2, y = H;
+      order.forEach(function (o) {
+        var v = t.counts[o[0]] || 0; if (!v) return;
+        var hh = v / max * (H - 8);
+        y -= hh;
+        svg += '<rect x="' + x + '" y="' + y + '" width="' + Math.max(bw - 4, 2) + '" height="' + hh + '" fill="' + o[1] + '"><title>' + fd(t.date) + ' · ' + o[0] + ': ' + v + '</title></rect>';
+      });
+      svg += '<text x="' + (x + (bw - 4) / 2) + '" y="' + (H + 12) + '" font-size="9" text-anchor="middle" fill="' + (dow(t.date) === 0 ? '#ea4335' : '#8a94a3') + '">' + t.date.slice(8) + '</text>';
+    });
+    return svg + '</svg>';
+  }
+})();
+</script>
+</body>
+</html>
