@@ -159,6 +159,9 @@ function ccRebuild_(opts) {
 
   var model = { cfg: cfg, today: today, team: team, rows: rows, fu: fu, ptp: ptp, io: io, inv: inv, pay: pay };
   ccBuildDashboard_(ss, model);
+  var props = PropertiesService.getScriptProperties();
+  props.deleteProperty('cc_dirty');
+  props.setProperty('cc_last_rebuild_ms', String(Date.now()));
   return { pans: rows.length, openInvoices: inv.openList.length, model: model };
 }
 
@@ -383,11 +386,13 @@ function ccRefreshPtp_(ss, inv, ownerOf, addOverdue, today) {
   var sh = ccSheet_(CC.T.PTP);
   var W = CC_PTP_COLS.length;
   var t = ccReadTable_(sh, W);
-  var rows = t.rows.map(function (r) { return ccFit_(r, W); }).filter(function (r) { return r[0] !== ''; });
+  var rows = t.rows.map(function (r) { return ccFit_(r, W); });
+  var orig = rows.map(function (r) { return r.slice(); });
   var year = Number(today.slice(0, 4));
   var seen = {};
   rows.forEach(function (row) {
     var no = ccStr_(row[0]);
+    if (!no) return;
     seen[no] = true;
     var rec = inv.byInv[no];
     if (rec) {
@@ -434,10 +439,10 @@ function ccRefreshPtp_(ss, inv, ownerOf, addOverdue, today) {
       addedN++;
     });
   }
-  ccWriteTable_(sh, rows, 2);
+  ccSyncRows_(sh, orig, rows);
 
   var byPan = {};
-  var list = rows.map(function (row) {
+  var list = rows.filter(function (row) { return row[0] !== ''; }).map(function (row) {
     var o = ccPtpRowObj_(row, today);
     if (o.pan && o.ptpDate && o.outstanding > 0) {
       var b = byPan[o.pan] || (byPan[o.pan] = { open: 0, amt: 0, next: '', broken: 0, dueToday: 0 });

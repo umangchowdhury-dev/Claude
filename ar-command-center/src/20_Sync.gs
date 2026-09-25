@@ -98,6 +98,13 @@ function ccSync_(opts) {
       if (st.name === 'mirrors' && cfg.RAW_ID && cfg.RAW_ID !== 'THIS') done = done.concat(ccPullMirrors_(open(cfg.RAW_ID)));
       if (st.name === 'inputs' && cfg.MODE === 'TEST' && cfg.LIVE_SHEET_ID) done = done.concat(ccPullInputs_(open(cfg.LIVE_SHEET_ID)));
       if (st.name === 'rebuild') {
+        var lastRb = Number(props.getProperty('cc_last_rebuild_ms') || 0);
+        var sameDay = lastRb && ccKey_(new Date(lastRb)) === ccToday_();
+        if (!opts.forceRebuild && props.getProperty('cc_dirty') !== '1' && sameDay && Date.now() - lastRb < 2 * 3600 * 1000) {
+          done.push('Nothing changed - PAN Master / Dashboard kept');
+          props.setProperty('cc_last_sync', Utilities.formatDate(new Date(), ccTz_(), 'dd-MMM-yy HH:mm'));
+          continue;
+        }
         var stats = ccRebuild_();
         done.push('PAN Master ' + stats.pans + ' PANs, ' + stats.openInvoices + ' open invoices');
         props.setProperty('cc_last_sync', Utilities.formatDate(new Date(), ccTz_(), 'dd-MMM-yy HH:mm'));
@@ -188,6 +195,7 @@ function ccPullInvoices_(src, deadlineMs) {
   if (lastNow > data.length + 1) dst.getRange(data.length + 2, 1, lastNow - data.length - 1, Math.max(dst.getLastColumn(), width)).clearContent();
   props.deleteProperty('cc_inv_progress');
   props.setProperty('cc_fp_inv', fp);
+  ccMarkDirty_();
   CacheService.getScriptCache().remove(CC.CACHE_PREFIX + 'meta');
   out.push('Invoices ' + data.length + ' rows');
   return { out: out, paused: false };
@@ -210,6 +218,7 @@ function ccPullMirrors_(src) {
     d.getRange(1, 1, 1, vals[0].length).setFontWeight('bold').setBackground(CC.COLORS.data);
     d.setFrozenRows(1);
     props.setProperty(key, fpm);
+    ccMarkDirty_();
     out.push(m[1] + ' ' + (vals.length - 1) + ' rows');
   });
   return out;
@@ -362,6 +371,7 @@ function ccMergeInputs_(liveInputs) {
   var sh = ccSheet_(CC.T.INPUTS);
   var t = ccReadTable_(sh, CC_INPUT_COLS.length);
   var rows = t.rows.map(function (r) { return ccFit_(r, CC_INPUT_COLS.length); });
+  var orig = rows.map(function (r) { return r.slice(); });
   var at = {};
   rows.forEach(function (r, i) { if (r[0]) at[String(r[0]).trim()] = i; });
   // [field in live, value col, live-last-seen col]
@@ -389,7 +399,7 @@ function ccMergeInputs_(liveInputs) {
       }
     });
   });
-  ccWriteTable_(sh, rows, 2);
+  ccSyncRows_(sh, orig, rows);
   return 'Inputs +' + added + ' PANs, ' + changed + ' live changes';
 }
 
@@ -397,14 +407,15 @@ function ccMergeInputs_(liveInputs) {
 function ccMergeFollowUps_(liveFu, liveDates) {
   var sh = ccSheet_(CC.T.FU);
   var t = ccReadTable_(sh, CC_FU_COLS.length);
-  var keep = [];
+  var keep = t.rows.map(function (r) { return ccFit_(r, CC_FU_COLS.length); });
+  var orig = keep.map(function (r) { return r.slice(); });
   var byKey = {};
-  t.rows.forEach(function (r) {
-    var k = ccKey_(r[0]) + '|' + String(r[1]).trim();
+  var removed = 0;
+  keep.forEach(function (r, i) {
     if (!r[1]) return;
-    if (r[4] === 'Live' && liveDates[ccKey_(r[0])] && !liveFu[k]) return; // cleared in the live sheet
-    byKey[k] = keep.length;
-    keep.push(ccFit_(r, CC_FU_COLS.length));
+    var k = ccKey_(r[0]) + '|' + String(r[1]).trim();
+    if (r[4] === 'Live' && liveDates[ccKey_(r[0])] && !liveFu[k]) { r[1] = ''; removed++; return; } // cleared in the live sheet
+    byKey[k] = i;
   });
   var added = 0;
   var updated = 0;
@@ -420,12 +431,19 @@ function ccMergeFollowUps_(liveFu, liveDates) {
       updated++;
     }
   });
-  keep.sort(function (a, b) {
-    var ka = ccKey_(a[0]), kb = ccKey_(b[0]);
-    return ka < kb ? -1 : ka > kb ? 1 : (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : (a[1] < b[1] ? -1 : 1));
-  });
-  ccWriteTable_(sh, keep, 2);
-  return 'Follow-ups ' + keep.length + ' (+' + added + ', ~' + updated + ')';
+  if (removed || !orig.length) {
+    // something was cleared in the live sheet (or first load): rewrite the log, sorted
+    keep = keep.filter(function (r) { return r[1]; });
+    keep.sort(function (a, b) {
+      var ka = ccKey_(a[0]), kb = ccKey_(b[0]);
+      return ka < kb ? -1 : ka > kb ? 1 : (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : (a[1] < b[1] ? -1 : 1));
+    });
+    ccWriteTable_(sh, keep, 2);
+    ccMarkDirty_();
+  } else {
+    ccSyncRows_(sh, orig, keep); // only changed rows + new rows at the bottom
+  }
+  return 'Follow-ups ' + keep.length + ' (+' + added + ', ~' + updated + ', -' + removed + ')';
 }
 
 /** PTP Tracker <- live rows. Rows edited here (Updated By set) keep their PTP fields. */
@@ -436,9 +454,10 @@ function ccMergePtp_(liveVals) {
   CC_PTP_COLS.forEach(function (h, i) { L[i] = col(h); });
   var sh = ccSheet_(CC.T.PTP);
   var t = ccReadTable_(sh, CC_PTP_COLS.length);
-  var rows = t.rows.map(function (r) { return ccFit_(r, CC_PTP_COLS.length); }).filter(function (r) { return r[0]; });
+  var rows = t.rows.map(function (r) { return ccFit_(r, CC_PTP_COLS.length); });
+  var orig = rows.map(function (r) { return r.slice(); });
   var at = {};
-  rows.forEach(function (r, i) { at[String(r[0]).trim()] = i; });
+  rows.forEach(function (r, i) { if (r[0]) at[String(r[0]).trim()] = i; });
   var added = 0;
   var refreshed = 0;
   for (var i = 1; i < liveVals.length; i++) {
@@ -452,12 +471,19 @@ function ccMergePtp_(liveVals) {
       at[inv] = rows.length - 1;
       added++;
     } else if (!rows[j][18]) {
-      // untouched here: take the live copy but keep anything only this sheet knows (PAN, extra columns)
-      fromLive.forEach(function (v, c) { if (L[c] >= 0) rows[j][c] = v; });
-      refreshed++;
+      // Untouched here: take what people type in the live sheet (details, PTP date, free-text status).
+      // Current Outstanding / Settlement / Days / Status are recalculated here, so they are not copied back.
+      [1, 2, 3, 4, 5, 7, 8].forEach(function (c) {
+        if (L[c] < 0) return;
+        var v = fromLive[c];
+        if (c === 8 && !(v instanceof Date)) return;
+        if (ccRowKey_([v]) !== ccRowKey_([rows[j][c]])) { rows[j][c] = v; refreshed++; }
+      });
+      var ls = ccStr_(fromLive[11]);
+      if (ls && CC.STATUSES.indexOf(ls) < 0 && ls !== ccStr_(rows[j][11]) && String(rows[j][16]).indexOf(ls) < 0) { rows[j][11] = ls; refreshed++; }
     }
   }
-  ccWriteTable_(sh, rows, 2);
+  ccSyncRows_(sh, orig, rows);
   return 'PTP Tracker ' + rows.length + ' (+' + added + ')';
 }
 
@@ -467,9 +493,10 @@ function ccMergeIo_(io) {
   var vals = io.getRange(1, 1, last, 12).getValues();
   var sh = ccSheet_(CC.T.IO);
   var t = ccReadTable_(sh, CC_IO_COLS.length);
-  var rows = t.rows.map(function (r) { return ccFit_(r, CC_IO_COLS.length); }).filter(function (r) { return r[0]; });
+  var rows = t.rows.map(function (r) { return ccFit_(r, CC_IO_COLS.length); });
+  var orig = rows.map(function (r) { return r.slice(); });
   var at = {};
-  rows.forEach(function (r, i) { at[String(r[0]).trim()] = i; });
+  rows.forEach(function (r, i) { if (r[0]) at[String(r[0]).trim()] = i; });
   var n = 0;
   for (var i = 1; i < vals.length; i++) {
     var pan = ccStr_(vals[i][0]);
@@ -479,11 +506,12 @@ function ccMergeIo_(io) {
     var keepInputs = !!rows[j][13];
     for (var c = 0; c < 12; c++) if (!(keepInputs && c >= 8)) rows[j][c] = vals[i][c];
   }
-  ccWriteTable_(sh, rows, 2);
+  ccSyncRows_(sh, orig, rows);
   // Legacy per-associate summary block (pivot + manually typed monthly incentive) kept for reference.
   var legacy = io.getRange(1, 16, Math.min(last, 40), 7).getValues()
     .filter(function (r) { return r.some(function (v) { return v !== '' && v !== null; }); });
-  if (legacy.length) {
+  var lw0 = sh.getMaxColumns() >= 22 ? sh.getRange(2, 16, legacy.length || 1, 7).getValues() : [];
+  if (legacy.length && ccRowKey_(lw0.map(ccRowKey_)) !== ccRowKey_(legacy.map(ccRowKey_))) {
     var lw = 7;
     if (sh.getMaxColumns() < 16 + lw) sh.insertColumnsAfter(sh.getMaxColumns(), 16 + lw - sh.getMaxColumns());
     sh.getRange(1, 16, Math.max(sh.getLastRow(), legacy.length + 1), lw).clearContent();
@@ -492,3 +520,41 @@ function ccMergeIo_(io) {
   }
   return 'IO Sign-off ' + rows.length + ' (+' + n + ')';
 }
+
+// ---------------------------------------------------------------------------
+// Incremental writes
+// ---------------------------------------------------------------------------
+
+function ccRowKey_(r) {
+  return JSON.stringify(r.map(function (v) { return v instanceof Date ? 'D' + v.getTime() : v === null || v === undefined ? '' : v; }));
+}
+
+/**
+ * Write only what changed: `orig` is what the sheet holds from row 2 down, `rows` the wanted content with the
+ * same rows in the same positions plus new rows at the end. Changed rows are rewritten one by one (many changes
+ * -> one bulk write), new rows are appended. Returns the number of rows written.
+ */
+function ccSyncRows_(sh, orig, rows) {
+  if (rows.length < orig.length) { ccWriteTable_(sh, rows, 2); ccMarkDirty_(); return rows.length; }
+  var changed = [];
+  for (var i = 0; i < orig.length; i++) if (ccRowKey_(orig[i]) !== ccRowKey_(rows[i])) changed.push(i);
+  var extra = rows.slice(orig.length);
+  if (!changed.length && !extra.length) return 0;
+  ccMarkDirty_();
+  var width = rows[0].length;
+  if (changed.length > 200) {
+    ccWriteTable_(sh, rows, 2);
+    return rows.length;
+  }
+  changed.forEach(function (i) { sh.getRange(i + 2, 1, 1, width).setValues([rows[i]]); });
+  if (extra.length) {
+    var start = orig.length + 2;
+    var need = start + extra.length - 1;
+    if (sh.getMaxRows() < need) sh.insertRowsAfter(sh.getMaxRows(), need - sh.getMaxRows());
+    sh.getRange(start, 1, extra.length, width).setValues(extra);
+  }
+  return changed.length + extra.length;
+}
+
+/** Something the PAN Master / Dashboard depend on changed -> the next rebuild must run. */
+function ccMarkDirty_() { PropertiesService.getScriptProperties().setProperty('cc_dirty', '1'); }

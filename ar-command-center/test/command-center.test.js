@@ -365,3 +365,23 @@ test('a paused sync whose continuation never ran is resumed by the next sync', (
   assert.equal(env.scriptProps.getProperty('cc_sync_stage'), null);
   assert.equal(pan(env, 'AAAPA1111A')['Associate Remarks'], 'after a lost continuation');
 });
+
+test('regular syncs write only what changed and skip the rebuild when nothing changed', () => {
+  const env = fresh();
+  const writes = () => Object.fromEntries(env.ss.getSheets().map((s) => [s.getName(), s.writes]));
+  const w0 = writes();
+  const r = env.ctx.ccSync_();
+  const w1 = writes();
+  assert.match(r.summary, /Nothing changed/);
+  ['Invoices', 'Follow-ups', 'PTP Tracker', 'PAN Inputs', 'IO Sign-off', 'PAN Master', 'Dashboard'].forEach((n) =>
+    assert.equal(w1[n], w0[n], n + ' untouched'));
+  // one new follow-up in the live sheet -> one appended row, then a rebuild
+  env.live.getSheetByName('Ravi').data[2][33 + 20] = 'Yes';
+  const r2 = env.ctx.ccSync_();
+  const w2 = writes();
+  assert.equal(w2['Follow-ups'] - w1['Follow-ups'], 1, 'single append');
+  assert.equal(w2['PTP Tracker'], w1['PTP Tracker'] + (w2['PTP Tracker'] - w1['PTP Tracker']));
+  assert.match(r2.summary, /PAN Master/);
+  assert.equal(fu(env, 'DDDPD4444D', TODAY).Status, 'Yes');
+  assert.equal(pan(env, 'DDDPD4444D')["Today's Status"], 'Yes');
+});

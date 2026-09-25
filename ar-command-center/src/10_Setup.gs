@@ -36,7 +36,12 @@ function CC_openSelectedPan() {
 }
 
 function CC_rebuildNow() {
-  ccRebuild_();
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    SpreadsheetApp.getUi().alert('A sync is running right now and will rebuild PAN Master & Dashboard at its end. Try again in a few minutes if needed.');
+    return;
+  }
+  try { ccRebuild_(); } finally { lock.releaseLock(); }
   SpreadsheetApp.getActive().toast('PAN Master & Dashboard rebuilt', 'AR Command Center', 4);
 }
 
