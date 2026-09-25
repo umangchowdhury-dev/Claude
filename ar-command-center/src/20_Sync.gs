@@ -11,14 +11,27 @@
  */
 
 function CC_scheduledSync() {
-  // A resumable sync is still in progress - let it finish instead of starting over.
-  if (PropertiesService.getScriptProperties().getProperty('cc_sync_stage')) return;
-  ccSync_();
+  var p = ccPendingStage_();
+  if (p === -2) return; // a continuation is already scheduled
+  ccSync_({ resume: p >= 0 });
 }
 
 function CC_syncNow() {
-  var r = ccSync_();
+  var p = ccPendingStage_();
+  var r = ccSync_({ resume: p !== -1 });
   SpreadsheetApp.getActive().toast(r.summary, r.pending ? 'Sync continues in the background' : 'Sync finished', 10);
+}
+
+/**
+ * Index of a paused sync's next step, or -1. A pause younger than 10 minutes is left to its own
+ * one-off trigger (returns -2 so callers skip); an older one is treated as stuck and resumed.
+ */
+function ccPendingStage_() {
+  var props = PropertiesService.getScriptProperties();
+  var st = props.getProperty('cc_sync_stage');
+  if (st === null || st === undefined || st === '') return -1;
+  var at = Number(props.getProperty('cc_sync_stage_at') || 0);
+  return Date.now() - at < 10 * 60 * 1000 && ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'CC_resumeSync'; }) ? -2 : Number(st);
 }
 
 /** One-off trigger target: continue a sync that stopped to stay inside Google's 6-minute limit. */
@@ -36,8 +49,8 @@ function CC_resumeSync() {
 var CC_SYNC_STAGES = [
   { name: 'invoices', needSec: 150 },
   { name: 'mirrors', needSec: 60 },
-  { name: 'inputs', needSec: 90 },
-  { name: 'rebuild', needSec: 120 }
+  { name: 'inputs', needSec: 150 },
+  { name: 'rebuild', needSec: 150 }
 ];
 
 function ccSync_(opts) {
@@ -46,7 +59,7 @@ function ccSync_(opts) {
   if (!lock.tryLock(5000)) return { summary: 'Another sync is running - skipped' };
   var props = PropertiesService.getScriptProperties();
   var started = new Date();
-  var budgetMs = opts.budgetMs !== undefined ? opts.budgetMs : 330000; // stop starting new stages after 5.5 min
+  var budgetMs = opts.budgetMs !== undefined ? opts.budgetMs : 270000; // stop starting new work after 4.5 min (Google's hard limit is 6)
   var cfg = ccConfig_();
   var from = opts.resume ? Number(props.getProperty('cc_sync_stage') || 0) : 0;
   var done = opts.resume ? JSON.parse(props.getProperty('cc_sync_done') || '[]') : [];
@@ -54,12 +67,15 @@ function ccSync_(opts) {
   var pending = false;
   var handles = {};
   var open = function (id) { return handles[id] || (handles[id] = SpreadsheetApp.openById(id)); };
+  // Visible straight away; if Google kills the run, this line stays "RUNNING" and the next run picks up.
+  var logRow = ccSyncLog_([started, '', '', cfg.MODE, opts.resume ? 'continuing from step ' + (from + 1) + ' of ' + CC_SYNC_STAGES.length : 'started', 'RUNNING']);
   try {
     for (var i = from; i < CC_SYNC_STAGES.length; i++) {
       var st = CC_SYNC_STAGES[i];
       var elapsed = new Date() - started;
       if (i > from && elapsed + st.needSec * 1000 > budgetMs) {
         props.setProperty('cc_sync_stage', String(i));
+          props.setProperty('cc_sync_stage_at', String(Date.now()));
         props.setProperty('cc_sync_done', JSON.stringify(done));
         ScriptApp.newTrigger('CC_resumeSync').timeBased().after(60 * 1000).create();
         pending = true;
@@ -71,6 +87,7 @@ function ccSync_(opts) {
         done = done.concat(inv.out);
         if (inv.paused) {
           props.setProperty('cc_sync_stage', String(i));
+          props.setProperty('cc_sync_stage_at', String(Date.now()));
           props.setProperty('cc_sync_done', JSON.stringify(done));
           ScriptApp.newTrigger('CC_resumeSync').timeBased().after(60 * 1000).create();
           pending = true;
@@ -86,7 +103,7 @@ function ccSync_(opts) {
         props.setProperty('cc_last_sync', Utilities.formatDate(new Date(), ccTz_(), 'dd-MMM-yy HH:mm'));
       }
     }
-    if (!pending) { props.deleteProperty('cc_sync_stage'); props.deleteProperty('cc_sync_done'); }
+    if (!pending) { props.deleteProperty('cc_sync_stage'); props.deleteProperty('cc_sync_done'); props.deleteProperty('cc_sync_stage_at'); }
   } catch (e) {
     result = 'ERROR: ' + (e && e.message ? e.message : e);
     props.deleteProperty('cc_sync_stage');
@@ -94,17 +111,23 @@ function ccSync_(opts) {
     throw e;
   } finally {
     var secs = Math.round((new Date() - started) / 1000);
-    ccSyncLog_([started, new Date(), secs, cfg.MODE, done.join(' | '), result]);
+    ccSyncLog_([started, new Date(), secs, cfg.MODE, done.join(' | '), result], logRow);
     lock.releaseLock();
   }
   return { summary: pending ? 'Part done - the rest continues automatically in about a minute (see Sync Log).' : done.join('\n'), result: result, pending: pending };
 }
 
-function ccSyncLog_(row) {
+/** Append a Sync Log line (or overwrite line `rowNo`). Returns the row number. */
+function ccSyncLog_(row, rowNo) {
   var sh = ccSheet_(CC.T.SYNC);
-  sh.appendRow(row);
-  var extra = sh.getLastRow() - 501; // keep the last 500 runs
+  if (rowNo && rowNo <= sh.getLastRow()) {
+    sh.getRange(rowNo, 1, 1, row.length).setValues([row]);
+    return rowNo;
+  }
+  var extra = sh.getLastRow() - 500; // keep the last 500 runs
   if (extra > 0) sh.deleteRows(2, extra);
+  sh.appendRow(row);
+  return sh.getLastRow();
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +174,7 @@ function ccPullInvoices_(src, deadlineMs) {
     dst.setFrozenRows(1);
   }
   while (next < data.length) {
-    if (next > 0 && Date.now() > deadlineMs - 45000) {
+    if (next > 0 && Date.now() > deadlineMs - 30000) {
       props.setProperty('cc_inv_progress', JSON.stringify({ fp: fp, next: next }));
       return { out: ['Invoices ' + next + '/' + data.length + ' copied'], paused: true, progress: next + '/' + data.length };
     }
@@ -264,7 +287,11 @@ function ccPullInputs_(live) {
   var liveFuDates = {};
   tabs.forEach(function (sh) {
     var name = sh.getName();
-    var vals = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues();
+    // Tabs carry formatting/formulas far below the last PAN - read only down to the last PAN row.
+    var colA = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
+    var lastPan = 2;
+    for (var k = colA.length - 1; k >= 2; k--) if (colA[k][0] !== '' && colA[k][0] !== null) { lastPan = k + 1; break; }
+    var vals = sh.getRange(1, 1, lastPan, sh.getLastColumn()).getValues();
     var hdr = vals[1];
     var H = ccLiveIndex_(hdr);
     var dateCols = [];

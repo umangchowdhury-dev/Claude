@@ -345,7 +345,7 @@ test('invoice copy runs in batches and resumes where it stopped', () => {
   const env = fresh();
   env.live.getSheetByName('Imported_Data').data[4][15] = 53000;
   env.ctx.CC_INV_BATCH = 3; // 10 invoices -> 4 batches
-  const r = env.ctx.ccSync_({ budgetMs: 44000 }); // deadline passes right after the first batch
+  const r = env.ctx.ccSync_({ budgetMs: 29000 }); // deadline passes right after the first batch
   assert.equal(r.pending, true);
   assert.match(table(env.ss, 'Sync Log').pop().Result, /PAUSED while copying invoices \(3\/10\)/);
   assert.equal(JSON.parse(env.scriptProps.getProperty('cc_inv_progress')).next, 3);
@@ -354,4 +354,14 @@ test('invoice copy runs in batches and resumes where it stopped', () => {
   assert.equal(table(env.ss, 'Invoices').length, 10);
   assert.equal(pan(env, 'AAAPA1111A')['g.>151'], 53000);
   assert.equal(table(env.ss, 'Sync Log').pop().Result, 'OK');
+});
+
+test('a paused sync whose continuation never ran is resumed by the next sync', () => {
+  const env = fresh();
+  env.live.getSheetByName('Asha').data[2][28] = 'after a lost continuation';
+  env.ctx.ccSync_({ budgetMs: 0 });
+  env.triggers.splice(env.triggers.indexOf('CC_resumeSync'), 1); // the one-off trigger got lost
+  env.ctx.CC_scheduledSync();
+  assert.equal(env.scriptProps.getProperty('cc_sync_stage'), null);
+  assert.equal(pan(env, 'AAAPA1111A')['Associate Remarks'], 'after a lost continuation');
 });
