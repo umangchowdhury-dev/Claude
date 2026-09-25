@@ -318,3 +318,40 @@ test('LIVE mode stops pulling associate inputs but keeps raw data flowing', () =
   assert.equal(a['Associate Remarks'], 'waiting for update');
   assert.equal(a['g.>151'], 45000);
 });
+
+test('sync pauses before Google\'s 6-minute limit and resumes by itself', () => {
+  const env = fresh();
+  env.live.getSheetByName('Imported_Data').data[4][15] = 52000;
+  env.live.getSheetByName('Asha').data[2][28] = 'remark during a long sync';
+  const r = env.ctx.ccSync_({ budgetMs: 0 }); // no time left after the first stage
+  assert.equal(r.pending, true);
+  assert.equal(env.scriptProps.getProperty('cc_sync_stage'), '1');
+  assert.ok(env.triggers.includes('CC_resumeSync'));
+  assert.equal(pan(env, 'AAAPA1111A')['Associate Remarks'], 'waiting for update', 'later stages not run yet');
+  env.ctx.CC_scheduledSync(); // a scheduled run while paused must not restart from scratch
+  assert.equal(env.scriptProps.getProperty('cc_sync_stage'), '1');
+  env.ctx.CC_resumeSync();
+  assert.equal(env.scriptProps.getProperty('cc_sync_stage'), null);
+  assert.ok(!env.triggers.includes('CC_resumeSync'), 'one-off trigger removed');
+  const a = pan(env, 'AAAPA1111A');
+  assert.equal(a['g.>151'], 52000);
+  assert.equal(a['Associate Remarks'], 'remark during a long sync');
+  const log = table(env.ss, 'Sync Log');
+  assert.match(log[log.length - 2].Result, /PAUSED/);
+  assert.equal(log[log.length - 1].Result, 'OK');
+});
+
+test('invoice copy runs in batches and resumes where it stopped', () => {
+  const env = fresh();
+  env.live.getSheetByName('Imported_Data').data[4][15] = 53000;
+  env.ctx.CC_INV_BATCH = 3; // 10 invoices -> 4 batches
+  const r = env.ctx.ccSync_({ budgetMs: 44000 }); // deadline passes right after the first batch
+  assert.equal(r.pending, true);
+  assert.match(table(env.ss, 'Sync Log').pop().Result, /PAUSED while copying invoices \(3\/10\)/);
+  assert.equal(JSON.parse(env.scriptProps.getProperty('cc_inv_progress')).next, 3);
+  env.ctx.CC_resumeSync(); // normal budget: finishes the rest and all later stages
+  assert.equal(env.scriptProps.getProperty('cc_inv_progress'), null);
+  assert.equal(table(env.ss, 'Invoices').length, 10);
+  assert.equal(pan(env, 'AAAPA1111A')['g.>151'], 53000);
+  assert.equal(table(env.ss, 'Sync Log').pop().Result, 'OK');
+});

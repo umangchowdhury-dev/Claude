@@ -60,8 +60,13 @@ function CC_setup() {
   ccInstallTriggers_();
   cfg = ccConfig_();
   if (cfg.LIVE_SHEET_ID) {
-    ccSync_();
-    if (ui) ui.alert('AR Command Center is ready.\n\nFirst sync done. Review the Team tab (roles, team leads, e-mails), then open the workbench from the 🧾 menu.');
+    var r = ccSync_();
+    if (ui && r.pending) {
+      ui.alert('Tabs are ready and the first copy of the data has started.\n\nThe rest continues automatically in the background (a few minutes). ' +
+        'Watch the "Sync Log" tab - when the last line says OK, reload the sheet.\n\nMeanwhile fill in the Team tab (e-mails, roles, team leads).');
+    } else if (ui) {
+      ui.alert('AR Command Center is ready.\n\nFirst sync done. Review the Team tab (roles, team leads, e-mails), then open the workbench from the 🧾 menu.');
+    }
   } else if (ui) {
     ui.alert('Tabs created. Add LIVE_SHEET_ID on the Config tab and run "Sync from live sheet now".');
   }

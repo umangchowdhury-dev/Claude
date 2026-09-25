@@ -182,6 +182,7 @@ function store() {
     get: (k) => (m.has(k) ? m.get(k) : null),
     put: (k, v) => { if (String(v).length > 100 * 1024) throw new Error('Argument too large'); m.set(k, String(v)); },
     remove: (k) => m.delete(k),
+    deleteProperty: (k) => { m.delete(k); },
     getAll: (keys) => { const o = {}; keys.forEach((k) => { if (m.has(k)) o[k] = m.get(k); }); return o; },
     putAll: (o) => { Object.keys(o).forEach((k) => { if (String(o[k]).length > 100 * 1024) throw new Error('Argument too large: ' + k); m.set(k, String(o[k])); }); },
     _map: m

@@ -11,43 +11,93 @@
  */
 
 function CC_scheduledSync() {
+  // A resumable sync is still in progress - let it finish instead of starting over.
+  if (PropertiesService.getScriptProperties().getProperty('cc_sync_stage')) return;
   ccSync_();
 }
 
 function CC_syncNow() {
   var r = ccSync_();
-  SpreadsheetApp.getActive().toast(r.summary, 'Sync finished', 8);
+  SpreadsheetApp.getActive().toast(r.summary, r.pending ? 'Sync continues in the background' : 'Sync finished', 10);
 }
 
-function ccSync_() {
+/** One-off trigger target: continue a sync that stopped to stay inside Google's 6-minute limit. */
+function CC_resumeSync() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'CC_resumeSync') ScriptApp.deleteTrigger(t);
+  });
+  ccSync_({ resume: true });
+}
+
+/**
+ * Sync in stages. Google stops a script after 6 minutes, so before each stage we check the time left;
+ * when a stage might not fit, progress is saved and a one-off trigger continues a minute later.
+ */
+var CC_SYNC_STAGES = [
+  { name: 'invoices', needSec: 150 },
+  { name: 'mirrors', needSec: 60 },
+  { name: 'inputs', needSec: 90 },
+  { name: 'rebuild', needSec: 120 }
+];
+
+function ccSync_(opts) {
+  opts = opts || {};
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return { summary: 'Another sync is running - skipped' };
+  var props = PropertiesService.getScriptProperties();
   var started = new Date();
+  var budgetMs = opts.budgetMs !== undefined ? opts.budgetMs : 330000; // stop starting new stages after 5.5 min
   var cfg = ccConfig_();
-  var done = [];
+  var from = opts.resume ? Number(props.getProperty('cc_sync_stage') || 0) : 0;
+  var done = opts.resume ? JSON.parse(props.getProperty('cc_sync_done') || '[]') : [];
   var result = 'OK';
+  var pending = false;
+  var handles = {};
+  var open = function (id) { return handles[id] || (handles[id] = SpreadsheetApp.openById(id)); };
   try {
-    if (cfg.RAW_ID && cfg.RAW_ID !== 'THIS') {
-      var src = SpreadsheetApp.openById(cfg.RAW_ID);
-      done = done.concat(ccPullRaw_(src));
+    for (var i = from; i < CC_SYNC_STAGES.length; i++) {
+      var st = CC_SYNC_STAGES[i];
+      var elapsed = new Date() - started;
+      if (i > from && elapsed + st.needSec * 1000 > budgetMs) {
+        props.setProperty('cc_sync_stage', String(i));
+        props.setProperty('cc_sync_done', JSON.stringify(done));
+        ScriptApp.newTrigger('CC_resumeSync').timeBased().after(60 * 1000).create();
+        pending = true;
+        result = 'PAUSED before "' + st.name + '" - continues automatically in ~1 min';
+        break;
+      }
+      if (st.name === 'invoices' && cfg.RAW_ID && cfg.RAW_ID !== 'THIS') {
+        var inv = ccPullInvoices_(open(cfg.RAW_ID), started.getTime() + budgetMs);
+        done = done.concat(inv.out);
+        if (inv.paused) {
+          props.setProperty('cc_sync_stage', String(i));
+          props.setProperty('cc_sync_done', JSON.stringify(done));
+          ScriptApp.newTrigger('CC_resumeSync').timeBased().after(60 * 1000).create();
+          pending = true;
+          result = 'PAUSED while copying invoices (' + inv.progress + ') - continues automatically in ~1 min';
+          break;
+        }
+      }
+      if (st.name === 'mirrors' && cfg.RAW_ID && cfg.RAW_ID !== 'THIS') done = done.concat(ccPullMirrors_(open(cfg.RAW_ID)));
+      if (st.name === 'inputs' && cfg.MODE === 'TEST' && cfg.LIVE_SHEET_ID) done = done.concat(ccPullInputs_(open(cfg.LIVE_SHEET_ID)));
+      if (st.name === 'rebuild') {
+        var stats = ccRebuild_();
+        done.push('PAN Master ' + stats.pans + ' PANs, ' + stats.openInvoices + ' open invoices');
+        props.setProperty('cc_last_sync', Utilities.formatDate(new Date(), ccTz_(), 'dd-MMM-yy HH:mm'));
+      }
     }
-    if (cfg.MODE === 'TEST' && cfg.LIVE_SHEET_ID) {
-      var live = cfg.LIVE_SHEET_ID === cfg.RAW_ID && src ? src : SpreadsheetApp.openById(cfg.LIVE_SHEET_ID);
-      done = done.concat(ccPullInputs_(live));
-    }
-    var stats = ccRebuild_();
-    done.push('PAN Master ' + stats.pans + ' PANs, ' + stats.openInvoices + ' open invoices');
-    PropertiesService.getScriptProperties().setProperty('cc_last_sync',
-      Utilities.formatDate(new Date(), ccTz_(), 'dd-MMM-yy HH:mm'));
+    if (!pending) { props.deleteProperty('cc_sync_stage'); props.deleteProperty('cc_sync_done'); }
   } catch (e) {
     result = 'ERROR: ' + (e && e.message ? e.message : e);
+    props.deleteProperty('cc_sync_stage');
+    props.deleteProperty('cc_sync_done');
     throw e;
   } finally {
     var secs = Math.round((new Date() - started) / 1000);
     ccSyncLog_([started, new Date(), secs, cfg.MODE, done.join(' | '), result]);
     lock.releaseLock();
   }
-  return { summary: done.join('\n'), result: result };
+  return { summary: pending ? 'Part done - the rest continues automatically in about a minute (see Sync Log).' : done.join('\n'), result: result, pending: pending };
 }
 
 function ccSyncLog_(row) {
@@ -61,40 +111,68 @@ function ccSyncLog_(row) {
 // Raw data
 // ---------------------------------------------------------------------------
 
-function ccPullRaw_(src) {
+/**
+ * Imported_Data -> Invoices, written in batches. Progress is saved after every batch, so a copy that does
+ * not fit in one run carries on in the next one (same data = same fingerprint) instead of starting over.
+ * Returns {out: [...], paused: bool, progress: 'rows/total'}.
+ */
+var CC_INV_BATCH = 4000;
+
+function ccPullInvoices_(src, deadlineMs) {
   var out = [];
   var props = PropertiesService.getScriptProperties();
-  var ss = SpreadsheetApp.getActive();
-
-  // Invoices (Imported_Data: header row is the one starting with "PAN #")
   var inv = src.getSheetByName(CC.LIVE.INV);
-  if (inv) {
-    var last = inv.getLastRow();
-    var top = inv.getRange(1, 1, Math.min(10, last), Math.min(inv.getLastColumn(), 60)).getValues();
-    var hr = -1;
-    for (var i = 0; i < top.length; i++) if (ccNorm_(top[i][0]) === 'pan #' || ccNorm_(top[i][0]) === 'pan') { hr = i; break; }
-    if (hr < 0) throw new Error('Imported_Data: header row with "PAN #" not found');
-    var hdr = top[hr];
-    var width = 0;
-    hdr.forEach(function (h, j) { if (h !== '' && h !== null) width = j + 1; });
-    hdr = hdr.slice(0, width);
-    var data = last > hr + 1 ? inv.getRange(hr + 2, 1, last - hr - 1, width).getValues() : [];
-    var gCol = hdr.map(ccNorm_).indexOf('invoice no');
-    data = data.filter(function (r) { return r[0] !== '' || (gCol >= 0 && r[gCol] !== ''); });
-    var fp = ccFingerprint_(hdr, data);
-    if (props.getProperty('cc_fp_inv') !== fp) {
-      var dst = ccSheet_(CC.T.INV);
-      ccWriteTable_(dst, [hdr].concat(data), 1);
-      dst.getRange(1, 1, 1, width).setFontWeight('bold').setBackground(CC.COLORS.data);
-      dst.setFrozenRows(1);
-      props.setProperty('cc_fp_inv', fp);
-      CacheService.getScriptCache().remove(CC.CACHE_PREFIX + 'meta');
-      out.push('Invoices ' + data.length + ' rows');
-    } else {
-      out.push('Invoices unchanged');
-    }
+  if (!inv) return { out: ['Imported_Data not found'], paused: false };
+  var last = inv.getLastRow();
+  var top = inv.getRange(1, 1, Math.min(10, last), Math.min(inv.getLastColumn(), 60)).getValues();
+  var hr = -1;
+  for (var i = 0; i < top.length; i++) if (ccNorm_(top[i][0]) === 'pan #' || ccNorm_(top[i][0]) === 'pan') { hr = i; break; }
+  if (hr < 0) throw new Error('Imported_Data: header row with "PAN #" not found');
+  var hdr = top[hr];
+  var width = 0;
+  hdr.forEach(function (h, j) { if (h !== '' && h !== null) width = j + 1; });
+  hdr = hdr.slice(0, width);
+  var data = last > hr + 1 ? inv.getRange(hr + 2, 1, last - hr - 1, width).getValues() : [];
+  var gCol = hdr.map(ccNorm_).indexOf('invoice no');
+  data = data.filter(function (r) { return r[0] !== '' || (gCol >= 0 && r[gCol] !== ''); });
+  var fp = ccFingerprint_(hdr, data);
+  if (props.getProperty('cc_fp_inv') === fp) return { out: ['Invoices unchanged'], paused: false };
+
+  var dst = ccSheet_(CC.T.INV);
+  var prog = JSON.parse(props.getProperty('cc_inv_progress') || 'null');
+  var next = prog && prog.fp === fp ? prog.next : 0;
+  if (next === 0) {
+    // fresh copy: size the grid once, wipe old content, write the header
+    var need = data.length + 1;
+    if (dst.getMaxRows() < need) dst.insertRowsAfter(dst.getMaxRows(), need - dst.getMaxRows());
+    if (dst.getMaxColumns() < width) dst.insertColumnsAfter(dst.getMaxColumns(), width - dst.getMaxColumns());
+    if (dst.getLastRow() > 0) dst.getRange(1, 1, dst.getLastRow(), Math.max(dst.getLastColumn(), width)).clearContent();
+    dst.getRange(1, 1, 1, width).setValues([hdr]).setFontWeight('bold').setBackground(CC.COLORS.data);
+    dst.setFrozenRows(1);
   }
-  // Straight mirrors
+  while (next < data.length) {
+    if (next > 0 && Date.now() > deadlineMs - 45000) {
+      props.setProperty('cc_inv_progress', JSON.stringify({ fp: fp, next: next }));
+      return { out: ['Invoices ' + next + '/' + data.length + ' copied'], paused: true, progress: next + '/' + data.length };
+    }
+    var chunk = data.slice(next, next + CC_INV_BATCH);
+    dst.getRange(next + 2, 1, chunk.length, width).setValues(chunk);
+    next += chunk.length;
+    props.setProperty('cc_inv_progress', JSON.stringify({ fp: fp, next: next }));
+  }
+  // remove rows left over from a longer previous copy
+  var lastNow = dst.getLastRow();
+  if (lastNow > data.length + 1) dst.getRange(data.length + 2, 1, lastNow - data.length - 1, Math.max(dst.getLastColumn(), width)).clearContent();
+  props.deleteProperty('cc_inv_progress');
+  props.setProperty('cc_fp_inv', fp);
+  CacheService.getScriptCache().remove(CC.CACHE_PREFIX + 'meta');
+  out.push('Invoices ' + data.length + ' rows');
+  return { out: out, paused: false };
+}
+
+function ccPullMirrors_(src) {
+  var out = [];
+  var props = PropertiesService.getScriptProperties();
   [[CC.LIVE.PAY, CC.T.PAY, 17], [CC.LIVE.CAT, CC.T.CAT, 9], [CC.LIVE.BRAND, CC.T.BRAND, 4],
    [CC.LIVE.EXPO, CC.T.EXPO, 1], [CC.LIVE.HIST, CC.T.HIST, 1]].forEach(function (m) {
     var s = src.getSheetByName(m[0]);
