@@ -391,8 +391,13 @@
 
   // ---------- boot ----------
   loading('Connecting to the sheet…');
+  var bootWatch = setTimeout(function () {
+    fail({ message: 'The sheet has not answered for 2 minutes. An admin can open Extensions → Apps Script → Executions (left bar) to see the error, or run 🧾 AR Workbench → Check speed.' });
+  }, 120000);
   call('wbBoot', store('scope') || '').then(function (boot) {
+    clearTimeout(bootWatch);
     var init = boot.init;
+    if (!init || init.version !== '2.0') throw new Error('This window and the script code are different versions. Paste both Code.gs and Workbench.html from the same download, and make sure no older copy of the workbench is left in another script file.');
     S.init = init;
     buildScope(boot.key);
 
@@ -406,7 +411,7 @@
     if (S.book) badges();
     if (START_PAN) { openPan(START_PAN); return; }
     go(S.scope ? 'today' : 'today');
-  }).catch(fail);
+  }).catch(function (e) { clearTimeout(bootWatch); fail(e); });
 
   function scopeOptions() {
     var i = S.init, o = [];

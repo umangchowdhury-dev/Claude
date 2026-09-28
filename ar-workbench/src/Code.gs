@@ -140,7 +140,10 @@ function WB_setup() {
   WB_onOpen();
   // Prepare the shared caches now, so the first person to open the workbench doesn't wait for 66k invoice rows.
   var warm = '';
-  try { var t0 = Date.now(); WB_warmCaches(); warm = 'Data prepared in ' + Math.round((Date.now() - t0) / 1000) + ' s.\n\n'; }
+  try {
+    var w = WB_warmCaches(150000);
+    warm = 'Data prepared in ' + w.seconds + ' s (' + w.tabs + ' of ' + w.of + ' associate tabs; the rest load on first use).\n\n';
+  }
   catch (e) { warm = 'Could not prepare the data yet (' + e.message + '). The hourly job will retry.\n\n'; }
   trig.note = warm + trig.note;
   try {
@@ -213,7 +216,7 @@ function WB_hourly() {
     props.setProperty('wb_last_snap', today);
     did.push('snapshot');
   } else if (hour >= 8 && hour < 22) {
-    WB_warmCaches();
+    WB_warmCaches(150000);
     did.push('warm');
   }
   return did;
@@ -289,6 +292,10 @@ function WB_refreshNow() {
 // ---------------------------------------------------------------------------
 
 function wbInit() {
+  if (typeof WB === 'undefined' || WB.VERSION !== '2.0' || typeof wbPayIndex_ !== 'function') {
+    throw new Error('Another script file in this project defines the same functions as the workbench (probably an older ' +
+      'copy of the workbench). Open Extensions → Apps Script and delete the old file, keeping only one copy of the workbench code.');
+  }
   var ss = SpreadsheetApp.getActive();
   var info = wbRoleInfo_();
   var cfg = wbSettings_();
@@ -1213,12 +1220,13 @@ function WB_refreshPtpStatuses(addMissing) {
 }
 
 /** Hourly: keep the team / overview caches warm so team leads and management open instantly. */
-function WB_warmCaches() {
+function WB_warmCaches(budgetMs) {
+  // Shared data first (every user needs it), then associate books one by one until the time budget runs out
+  // (Google stops any script after 6 minutes; what is not warmed now is read on first use).
+  var t0 = Date.now();
+  var budget = typeof budgetMs === 'number' ? budgetMs : 270000;
   var ss = SpreadsheetApp.getActive();
   var names = wbAssociateSheets_(ss).map(function (s) { return s.getName(); });
-  names.forEach(wbDropBook_);
-  wbBooks_(names, false);
-  wbOwnerIndex_(true);
   wbOpenInvoices_(false);
   ['ptp', 'io', 'cons'].forEach(wbDropCache_);
   wbReadPtp_(ss);
@@ -1226,6 +1234,15 @@ function WB_warmCaches() {
   wbConsolidated_(ss);
   wbPayIndex_(ss);
   wbReadLogTail_(ss, wbKey_(new Date()));
+  wbOwnerIndex_(true);
+  var done = 0;
+  for (var i = 0; i < names.length; i++) {
+    if (Date.now() - t0 > budget) break;
+    wbDropBook_(names[i]);
+    wbBooks_([names[i]], false);
+    done++;
+  }
+  return { tabs: done, of: names.length, seconds: Math.round((Date.now() - t0) / 1000) };
 }
 
 /** 22:00: one row per associate into WB Snapshots (trend history for the overview). */
