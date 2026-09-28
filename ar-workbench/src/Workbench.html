@@ -318,8 +318,30 @@
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, err ? 6000 : 2800);
   }
-  function fail(e) { toast((e && e.message) || String(e), true); }
-  function loading(msg) { $('view').innerHTML = '<div class="loading"><div class="spinner"></div>' + esc(msg || 'Loading…') + '</div>'; }
+  function fail(e) {
+    var m = (e && e.message) || String(e);
+    // An error while the screen is still loading stays on screen (with Retry) instead of a toast that vanishes.
+    if (document.querySelector('#view .loading')) {
+      $('view').innerHTML = '<div class="card"><h3>Something went wrong</h3><p style="color:var(--red)">' + esc(m) + '</p>' +
+        '<p class="muted small">Try again. If it keeps happening, an admin can run <b>🧾 AR Workbench → Check speed</b> and share the result.</p>' +
+        '<button class="btn primary" id="retryBtn">↻ Retry</button></div>';
+      $('retryBtn').onclick = function () { location.reload(); };
+    } else toast(m, true);
+  }
+  var loadTimer = null;
+  function loading(msg) {
+    $('view').innerHTML = '<div class="loading"><div class="spinner"></div><div id="loadMsg">' + esc(msg || 'Loading…') + '</div><div class="faint small" id="loadHint" style="margin-top:6px"></div></div>';
+    clearTimeout(loadTimer);
+    var t0 = Date.now();
+    var tick = function () {
+      var h = $('loadHint'); if (!h) return;
+      var s = Math.round((Date.now() - t0) / 1000);
+      h.textContent = s < 12 ? '' : s < 60 ? s + ' s · the first load of the day reads every invoice once – later opens are quick'
+        : s + ' s · still working. Very large books take up to 2 minutes the first time.';
+      loadTimer = setTimeout(tick, 1000);
+    };
+    loadTimer = setTimeout(tick, 1000);
+  }
   function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('wb2_' + k) || 'null'); localStorage.setItem('wb2_' + k, JSON.stringify(v)); } catch (e) { return null; } }
   function statusPill(s) {
     if (!s) return '';
@@ -368,12 +390,12 @@
   }
 
   // ---------- boot ----------
+  loading('Connecting to the sheet…');
   call('wbBoot', store('scope') || '').then(function (boot) {
     var init = boot.init;
     S.init = init;
     buildScope(boot.key);
-    if (boot.book && S.scopeKey === boot.key) { S.book = boot.book; S.ptps = boot.book.ptps; }
-    if (boot.bookError) toast(boot.bookError, true);
+
     buildTabs();
     var rc = $('roleChip');
     rc.textContent = init.role === 'Admin' && !init.rolesConfigured ? 'Set-up' : init.role;

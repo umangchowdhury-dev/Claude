@@ -146,6 +146,7 @@ function load(fixture, opts = {}) {
   const triggers = [];
   const ctx = {
     console,
+    Logger: { log() {} },
     Date, // share the host Date so `instanceof Date` works for fixture values inside the sandbox
     SpreadsheetApp: {
       getActive: () => ss,

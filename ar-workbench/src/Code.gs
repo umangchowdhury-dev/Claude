@@ -123,6 +123,7 @@ function WB_onOpen() {
     .addItem('Run daily maintenance now', 'WB_dailyMaintenance')
     .addItem('Take snapshot now', 'WB_nightlySnapshot')
     .addSeparator()
+    .addItem('Check speed (admin)', 'WB_checkSpeed')
     .addItem('Setup / repair (admin)', 'WB_setup')
     .addToUi();
 }
@@ -137,6 +138,11 @@ function WB_setup() {
   var trig = wbInstallTriggers_(ss);
   wbClearCaches_();
   WB_onOpen();
+  // Prepare the shared caches now, so the first person to open the workbench doesn't wait for 66k invoice rows.
+  var warm = '';
+  try { var t0 = Date.now(); WB_warmCaches(); warm = 'Data prepared in ' + Math.round((Date.now() - t0) / 1000) + ' s.\n\n'; }
+  catch (e) { warm = 'Could not prepare the data yet (' + e.message + '). The hourly job will retry.\n\n'; }
+  trig.note = warm + trig.note;
   try {
     SpreadsheetApp.getUi().alert('AR Workbench ' + WB.VERSION + ' is ready.\n\n' + trig.note +
       '1. Fill in roles and e-mails on the "' + WB.SHEET_SETTINGS + '" tab (team leads, management).\n' +
@@ -211,6 +217,34 @@ function WB_hourly() {
     did.push('warm');
   }
   return did;
+}
+
+/** Menu → Check speed: times every building block of the workbench on this sheet (cold, without caches). */
+function WB_checkSpeed() {
+  var ss = SpreadsheetApp.getActive();
+  var out = [];
+  var step = function (name, fn) {
+    var t0 = Date.now();
+    var note = '';
+    try { note = fn() || ''; } catch (e) { note = 'ERROR: ' + e.message; }
+    out.push(name + ': ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (note ? '  (' + note + ')' : ''));
+  };
+  wbClearCaches_();
+  var names = [];
+  step('Settings & roles', function () { var i = wbRoleInfo_(); return i.role + (i.email ? ', ' + i.email : ', e-mail hidden'); });
+  step('Find associate tabs', function () { names = wbAssociateSheets_(ss).map(function (s) { return s.getName(); }); return names.length + ' tabs'; });
+  step('Imported_Data (open invoices)', function () { return wbOpenInvoices_(true).count + ' open'; });
+  step('PTP Tracker', function () { return wbReadPtp_(ss).rows.length + ' rows'; });
+  step('IO rate card', function () { return wbReadIo_(ss).rows.length + ' rows'; });
+  step('Payables', function () { return Object.keys(wbPayIndex_(ss).pan).length + ' PANs'; });
+  step('Activity log', function () { return wbReadLogTail_(ss, wbKey_(new Date())).length + ' today'; });
+  step('PAN index (all tabs, col A)', function () { return Object.keys(wbOwnerIndex_(true).byPan).length + ' PANs'; });
+  if (names.length) step('One associate tab (' + names[0] + ')', function () { return wbBuildBook_(ss.getSheetByName(names[0])).rows.length + ' PANs'; });
+  step('All associate tabs', function () { var b = wbBooks_(names, false); return Object.keys(b).length + ' tabs'; });
+  var msg = out.join('\n');
+  Logger.log(msg);
+  try { SpreadsheetApp.getUi().alert('AR Workbench – speed check', msg + '\n\nThe caches are now warm, so the workbench should open quickly.', SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* no UI */ }
+  return msg;
 }
 
 function WB_openSidebar() {
@@ -305,11 +339,8 @@ function wbBoot(savedKey) {
       : init.teamLeads.indexOf(savedKey.slice(2)) >= 0;
     if (ok) key = savedKey;
   }
-  var out = { init: init, key: key, book: null };
-  if (key) {
-    try { out.book = wbGetBook(wbScopeOf_(key)); } catch (e) { out.bookError = e.message; }
-  }
-  return out;
+  // The book is loaded by a second call so the window appears at once and can show progress.
+  return { init: init, key: key, book: null };
 }
 
 function wbScopeOf_(key) {

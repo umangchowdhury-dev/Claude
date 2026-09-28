@@ -609,20 +609,27 @@ test('wbGoToRow selects the PAN row in the owner tab', () => {
   assert.equal(call(env, 'wbGoToRow', 'NOPEX0000X').ok, false);
 });
 
-test('wbBoot returns session info and the first book in one call', () => {
+test('wbBoot returns session info and the view to open, fast (the book comes in a second call)', () => {
   const env = withRoles(fresh());
   let b = call(env, 'wbBoot', '');
   assert.equal(b.key, 'a:Asha');
   assert.equal(b.init.me, 'Asha');
-  assert.equal(b.book.rows.length, 4);
-  assert.ok(Array.isArray(b.book.ptps.rows), 'PTPs come with the book');
+  assert.equal(b.book, null);
   assert.equal(call(env, 'wbBoot', 'a:Ravi').key, 'a:Asha', 'associates always start on their own book');
   env.setEmail('tara@example.com');
-  b = call(env, 'wbBoot', '');
-  assert.equal(b.key, 't:Tara');
-  assert.deepEqual(b.book.names, ['Asha', 'Ravi']);
+  assert.equal(call(env, 'wbBoot', '').key, 't:Tara');
   assert.equal(call(env, 'wbBoot', 'a:Ravi').key, 'a:Ravi', 'team leads return to the view they left');
   assert.equal(call(env, 'wbBoot', 'a:Nobody').key, 't:Tara', 'unknown saved view falls back');
+  assert.ok(Array.isArray(call(env, 'wbGetBook', { teamLead: 'Tara' }).ptps.rows), 'PTPs come with the book');
+});
+
+test('WB_checkSpeed times every building block and leaves the caches warm', () => {
+  const env = fresh();
+  env.run('WB_setup');
+  const msg = env.run('WB_checkSpeed');
+  assert.match(msg, /Imported_Data \(open invoices\): [\d.]+ s  \(8 open\)/);
+  assert.match(msg, /All associate tabs: .*2 tabs/);
+  assert.doesNotMatch(msg, /ERROR/);
 });
 
 test('cached tabs are refreshed by workbench writes (PTP, IO, log)', () => {

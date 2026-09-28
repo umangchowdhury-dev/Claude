@@ -118,6 +118,8 @@ The hourly job does, in the sheet's time zone:
 
 "Once a day" is tracked, so a late or missed run is caught up by the next one.
 
+**If the workbench is slow to open:** run **🧾 AR Workbench → Check speed (admin)**. It times each building block on your sheet (Imported_Data, PTP Tracker, IO card, Payables, each associate tab) and warms the caches. `WB_setup` also warms them and reports how long that took.
+
 ## Settings (WB Settings, columns G:I)
 
 | Setting | Default | Meaning |
@@ -150,7 +152,7 @@ The hourly job does, in the sheet's time zone:
 
 ```bash
 cd ar-workbench
-TZ=Asia/Kolkata node --test test/*.test.js                   # 38 tests against a synthetic workbook
+TZ=Asia/Kolkata node --test test/*.test.js                   # 39 tests against a synthetic workbook
 TZ=Asia/Kolkata node test/preview.js --synthetic out           # screenshots for associate, team lead, management + every form clicked end to end (Playwright)
 ONLY=associate-sidebar TZ=Asia/Kolkata node test/preview.js --synthetic out   # one persona / mode
 ```
