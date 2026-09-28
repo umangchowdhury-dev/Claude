@@ -105,14 +105,18 @@ On the 27-Sep export the checks found:
 
 **Upgrading from v1:** replace `Code.gs` and `Workbench.html` and run `WB_setup` again. The activity log and PTP Tracker columns carry over.
 
-**Scheduled jobs** (installed by `WB_setup`):
+**Scheduled jobs.** `WB_setup` installs just **two triggers**: the menu (`WB_onOpen`) and one hourly job (`WB_hourly`). Google allows 20 triggers per person per script, and many sheets already use some. Setup also removes old or duplicate workbench triggers. If the quota is still full, it tells you which other triggers exist so you can delete the ones you don't need.
 
-| When | Job |
+The hourly job does, in the sheet's time zone:
+
+| When | What |
 |---|---|
-| 07:00 | `WB_dailyMaintenance`: rebuild caches; refresh PTP statuses; add newly overdue invoices to PTP Tracker as "PTP Pending"; write "Invoice Not Due" for PANs with nothing overdue (blank cells only). |
-| every 2 h | `WB_refreshPtpStatuses`: current outstanding, settlement date, days vs PTP, status. |
-| every 1 h | `WB_warmCaches`: keeps the team and overview views instant. |
-| 22:00 | `WB_nightlySnapshot`: trend history. |
+| first run from 07:00 | Daily maintenance: rebuild caches; refresh PTP statuses; add newly overdue invoices to PTP Tracker as "PTP Pending"; write "Invoice Not Due" for PANs with nothing overdue (blank cells only). |
+| every 2 hours | PTP status refresh: current outstanding, settlement date, days vs PTP, status. |
+| 08:00–22:00 | Cache warm-up, so the team and overview views open instantly. |
+| first run from 22:00 | Nightly snapshot for the trend. |
+
+"Once a day" is tracked, so a late or missed run is caught up by the next one.
 
 ## Settings (WB Settings, columns G:I)
 
@@ -146,7 +150,7 @@ On the 27-Sep export the checks found:
 
 ```bash
 cd ar-workbench
-TZ=Asia/Kolkata node --test test/*.test.js                   # 36 tests against a synthetic workbook
+TZ=Asia/Kolkata node --test test/*.test.js                   # 38 tests against a synthetic workbook
 TZ=Asia/Kolkata node test/preview.js --synthetic out           # screenshots for associate, team lead, management + every form clicked end to end (Playwright)
 ONLY=associate-sidebar TZ=Asia/Kolkata node test/preview.js --synthetic out   # one persona / mode
 ```

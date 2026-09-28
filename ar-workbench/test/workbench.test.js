@@ -489,7 +489,7 @@ test('WB_setup is idempotent: tabs, headers, settings and triggers once', () => 
   const env = fresh();
   env.run('WB_setup');
   env.run('WB_setup');
-  assert.deepEqual(env.triggers.slice().sort(), ['WB_dailyMaintenance', 'WB_nightlySnapshot', 'WB_onOpen', 'WB_refreshPtpStatuses', 'WB_warmCaches']);
+  assert.deepEqual(env.triggers.slice().sort(), ['WB_hourly', 'WB_onOpen'], 'only two triggers');
   const hdr = env.ss.getSheetByName('PTP Tracker').data[0].filter(Boolean);
   assert.equal(hdr.length, 12 + 8);
   assert.equal(hdr[12], 'PAN');
@@ -636,4 +636,34 @@ test('cached tabs are refreshed by workbench writes (PTP, IO, log)', () => {
   assert.deepEqual(d.history.map((h) => h.type), ['IO', 'PTP'], 'log tail picks up new rows');
   env.ss.getSheetByName('WB Activity Log').appendRow([new Date(), new Date(), 'Asha', 'AAAPA1111A', '', 'Call', 'typed in the sheet']);
   assert.equal(call(env, 'wbGetPan', 'AAAPA1111A').history[0].outcome, 'typed in the sheet', 'rows added outside the workbench too');
+});
+
+test('WB_setup removes old / duplicate workbench triggers and explains a full trigger quota', () => {
+  const env = fresh();
+  env.triggers.push('WB_dailyMaintenance', 'WB_warmCaches', 'WB_onOpen', 'WB_onOpen');
+  env.run('WB_setup');
+  assert.deepEqual(env.triggers.slice().sort(), ['WB_hourly', 'WB_onOpen']);
+  const full = fresh();
+  for (let i = 0; i < 20; i++) full.triggers.push('otherJob' + i);
+  const r = full.run('wbInstallTriggers_', full.ss);
+  assert.deepEqual([...r.failed], ['WB_onOpen', 'WB_hourly']);
+  assert.match(r.note, /limit of 20 triggers/);
+  assert.match(r.note, /otherJob0/);
+});
+
+test('WB_hourly runs the daily job once a day and warms caches in office hours', () => {
+  const env = fresh();
+  env.run('WB_setup');
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }).format(new Date())) % 24;
+  const first = env.run('WB_hourly');
+  const again = env.run('WB_hourly');
+  if (hour >= 7) {
+    assert.ok(first.includes('daily'));
+    assert.ok(!again.includes('daily'), 'not twice the same day');
+    assert.equal(dailyCell(env, 'Asha', 'CCCPC3333C'), 'Invoice Not Due');
+  } else {
+    assert.ok(!first.includes('daily'));
+  }
+  if (hour >= 22) assert.ok(first.includes('snapshot') && !again.includes('snapshot'));
+  if (hour >= 8 && hour < 22) assert.ok(again.includes('warm'));
 });

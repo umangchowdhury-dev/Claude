@@ -128,6 +128,7 @@ function formatDate(d, tz, fmt) {
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   if (fmt === 'yyyy-MM-dd') return `${get('year')}-${get('month')}-${get('day')}`;
   if (fmt === 'dd-MMM') return `${get('day')}-${MON[+get('month') - 1]}`;
+  if (fmt === 'H') return String(Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }).format(d)) % 24);
   if (fmt === 'dd-MMM HH:mm') {
     const t = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
     return `${get('day')}-${MON[+get('month') - 1]} ${t}`;
@@ -140,6 +141,7 @@ function load(fixture, opts = {}) {
   let email = opts.email === undefined ? 'associate@example.com' : opts.email;
   const cache = new Map();
   const userProps = new Map();
+  const scriptProps = new Map();
   const drafts = [];
   const triggers = [];
   const ctx = {
@@ -160,15 +162,19 @@ function load(fixture, opts = {}) {
         putAll: (o) => { Object.keys(o).forEach((k) => { if (String(o[k]).length > 100 * 1024) throw new Error('Argument too large: ' + k); cache.set(k, String(o[k])); }); }
       })
     },
-    PropertiesService: { getUserProperties: () => ({ getProperty: (k) => (userProps.has(k) ? userProps.get(k) : null), setProperty: (k, v) => userProps.set(k, v) }) },
+    PropertiesService: {
+      getUserProperties: () => ({ getProperty: (k) => (userProps.has(k) ? userProps.get(k) : null), setProperty: (k, v) => userProps.set(k, v) }),
+      getScriptProperties: () => ({ getProperty: (k) => (scriptProps.has(k) ? scriptProps.get(k) : null), setProperty: (k, v) => scriptProps.set(k, v) })
+    },
     LockService: { getDocumentLock: () => ({ waitLock() {}, releaseLock() {} }) },
     Utilities: { formatDate },
     Session: { getActiveUser: () => ({ getEmail: () => email }) },
     GmailApp: { createDraft: (to, subject, body, o) => { drafts.push({ to, subject, body, o }); return { getId: () => 'draft-' + drafts.length }; } },
     ScriptApp: {
-      getProjectTriggers: () => triggers.map((t) => ({ getHandlerFunction: () => t })),
+      getProjectTriggers: () => triggers.map((t) => ({ getHandlerFunction: () => t, _fn: t })),
+      deleteTrigger: (t) => { const i = triggers.indexOf(t._fn); if (i >= 0) triggers.splice(i, 1); },
       newTrigger: (fn) => {
-        const b = { forSpreadsheet() { return b; }, onOpen() { return b; }, timeBased() { return b; }, everyDays() { return b; }, everyHours() { return b; }, atHour() { return b; }, create() { triggers.push(fn); } };
+        const b = { forSpreadsheet() { return b; }, onOpen() { return b; }, timeBased() { return b; }, everyDays() { return b; }, everyHours() { return b; }, atHour() { return b; }, create() { if (triggers.length >= 20) throw new Error('This script has too many triggers.'); triggers.push(fn); } };
         return b;
       }
     },

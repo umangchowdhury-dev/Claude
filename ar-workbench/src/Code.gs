@@ -134,22 +134,83 @@ function WB_setup() {
   wbEnsureIoHeaders_(ss);
   wbEnsureSettingsSheet_(ss);
   wbEnsureSnapSheet_(ss);
-  var want = {
-    WB_onOpen: function () { ScriptApp.newTrigger('WB_onOpen').forSpreadsheet(ss).onOpen().create(); },
-    WB_dailyMaintenance: function () { ScriptApp.newTrigger('WB_dailyMaintenance').timeBased().everyDays(1).atHour(7).create(); },
-    WB_refreshPtpStatuses: function () { ScriptApp.newTrigger('WB_refreshPtpStatuses').timeBased().everyHours(2).create(); },
-    WB_warmCaches: function () { ScriptApp.newTrigger('WB_warmCaches').timeBased().everyHours(1).create(); },
-    WB_nightlySnapshot: function () { ScriptApp.newTrigger('WB_nightlySnapshot').timeBased().everyDays(1).atHour(22).create(); }
-  };
-  var existing = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
-  Object.keys(want).forEach(function (fn) { if (existing.indexOf(fn) < 0) want[fn](); });
+  var trig = wbInstallTriggers_(ss);
   wbClearCaches_();
   WB_onOpen();
   try {
-    SpreadsheetApp.getUi().alert('AR Workbench ' + WB.VERSION + ' is ready.\n\n' +
+    SpreadsheetApp.getUi().alert('AR Workbench ' + WB.VERSION + ' is ready.\n\n' + trig.note +
       '1. Fill in roles and e-mails on the "' + WB.SHEET_SETTINGS + '" tab (team leads, management).\n' +
       '2. Use the "🧾 AR Workbench" menu to open the workbench.');
   } catch (e) { /* run from a trigger / editor without UI */ }
+}
+
+/**
+ * Only two triggers: the open menu and ONE hourly job that does everything scheduled (Google allows 20 triggers
+ * per person per script, and many sheets already use some). Old / duplicate workbench triggers are removed first.
+ */
+function wbInstallTriggers_(ss) {
+  var mine = ['WB_onOpen', 'WB_hourly'];
+  var legacy = ['WB_dailyMaintenance', 'WB_refreshPtpStatuses', 'WB_warmCaches', 'WB_nightlySnapshot'];
+  var seen = {};
+  var removed = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    var fn = t.getHandlerFunction();
+    if (legacy.indexOf(fn) >= 0 || (mine.indexOf(fn) >= 0 && seen[fn])) { ScriptApp.deleteTrigger(t); removed++; return; }
+    seen[fn] = true;
+  });
+  var add = {
+    WB_onOpen: function () { ScriptApp.newTrigger('WB_onOpen').forSpreadsheet(ss).onOpen().create(); },
+    WB_hourly: function () { ScriptApp.newTrigger('WB_hourly').timeBased().everyHours(1).create(); }
+  };
+  var failed = [];
+  mine.forEach(function (fn) {
+    if (seen[fn]) return;
+    try { add[fn](); } catch (e) { failed.push(fn); }
+  });
+  var others = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); })
+    .filter(function (fn) { return mine.indexOf(fn) < 0; });
+  var note = '';
+  if (failed.length) {
+    note = '⚠️ Google\'s limit of 20 triggers for your account on this script is full, so these could not be added: ' +
+      failed.join(', ') + '.\nOpen Apps Script → Triggers (clock icon), delete triggers you no longer need (' + others.length +
+      ' other trigger(s): ' + others.slice(0, 8).join(', ') + (others.length > 8 ? ', …' : '') + '), then run WB_setup again.\n\n';
+  } else if (removed) {
+    note = 'Tidied ' + removed + ' old workbench trigger(s).\n\n';
+  }
+  return { failed: failed, removed: removed, note: note };
+}
+
+/**
+ * The single scheduled job (installed every hour). Runs, in the spreadsheet's time zone:
+ *   from 07:00 once a day  daily maintenance (caches, PTP statuses, new overdue into PTP Tracker, Invoice Not Due)
+ *   every 2 hours          PTP status refresh
+ *   08:00-21:59            cache warm-up so team / overview views open instantly
+ *   from 22:00 once a day  snapshot for the trend
+ * "Once a day" is tracked in script properties, so a missed or late run is caught up by the next one.
+ */
+function WB_hourly() {
+  var props = PropertiesService.getScriptProperties();
+  var now = new Date();
+  var today = wbKey_(now);
+  var hour = Number(Utilities.formatDate(now, wbTz_(), 'H'));
+  var did = [];
+  if (hour >= 7 && props.getProperty('wb_last_daily') !== today) {
+    WB_dailyMaintenance();
+    props.setProperty('wb_last_daily', today);
+    did.push('daily');
+  } else if (hour % 2 === 0) {
+    WB_refreshPtpStatuses();
+    did.push('ptp');
+  }
+  if (hour >= 22 && props.getProperty('wb_last_snap') !== today) {
+    WB_nightlySnapshot();
+    props.setProperty('wb_last_snap', today);
+    did.push('snapshot');
+  } else if (hour >= 8 && hour < 22) {
+    WB_warmCaches();
+    did.push('warm');
+  }
+  return did;
 }
 
 function WB_openSidebar() {
