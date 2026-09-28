@@ -130,12 +130,14 @@ function WB_onOpen() {
 
 function WB_setup() {
   var ss = SpreadsheetApp.getActive();
+  console.log('AR Workbench · setup: creating tabs, headers and triggers');
   wbEnsureLogSheet_(ss);
   wbEnsurePtpHeaders_(ss);
   wbEnsureIoHeaders_(ss);
   wbEnsureSettingsSheet_(ss);
   wbEnsureSnapSheet_(ss);
   var trig = wbInstallTriggers_(ss);
+  console.log('AR Workbench · triggers ready' + (trig.failed.length ? ' (NOT added: ' + trig.failed.join(', ') + ')' : '') + ' · now preparing data');
   wbClearCaches_();
   WB_onOpen();
   // Prepare the shared caches now, so the first person to open the workbench doesn't wait for 66k invoice rows.
@@ -1226,20 +1228,24 @@ function WB_warmCaches(budgetMs) {
   var t0 = Date.now();
   var budget = typeof budgetMs === 'number' ? budgetMs : 270000;
   var ss = SpreadsheetApp.getActive();
+  var lap = t0;
+  var say = function (what) { var n = Date.now(); console.log('AR Workbench · ' + what + ' · ' + ((n - lap) / 1000).toFixed(1) + ' s'); lap = n; };
   var names = wbAssociateSheets_(ss).map(function (s) { return s.getName(); });
-  wbOpenInvoices_(false);
+  say('found ' + names.length + ' associate tabs');
+  say('Imported_Data: ' + wbOpenInvoices_(false).count + ' open invoices');
   ['ptp', 'io', 'cons'].forEach(wbDropCache_);
-  wbReadPtp_(ss);
-  wbReadIo_(ss);
-  wbConsolidated_(ss);
-  wbPayIndex_(ss);
-  wbReadLogTail_(ss, wbKey_(new Date()));
-  wbOwnerIndex_(true);
+  say('PTP Tracker: ' + wbReadPtp_(ss).rows.length + ' rows');
+  say('IO rate card: ' + wbReadIo_(ss).rows.length + ' rows');
+  wbConsolidated_(ss); say('Consolidated');
+  wbPayIndex_(ss); say('Payables');
+  wbReadLogTail_(ss, wbKey_(new Date())); say('Activity log');
+  wbOwnerIndex_(true); say('PAN index');
   var done = 0;
   for (var i = 0; i < names.length; i++) {
-    if (Date.now() - t0 > budget) break;
+    if (Date.now() - t0 > budget) { console.log('AR Workbench · time budget used - the other tabs load on first use'); break; }
     wbDropBook_(names[i]);
     wbBooks_([names[i]], false);
+    say('tab ' + names[i]);
     done++;
   }
   return { tabs: done, of: names.length, seconds: Math.round((Date.now() - t0) / 1000) };
