@@ -6,169 +6,249 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
-    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2328; --muted: #5f6b7a; --faint: #8a94a3;
-    --line: #e3e6ea; --accent: #1a73e8; --accent-soft: #e8f0fe;
-    --red: #c5221f; --red-soft: #fce8e6; --amber: #b06000; --amber-soft: #fef3e0;
+    --bg: #f4f6f9; --card: #ffffff; --ink: #1b1f24; --muted: #5b6776; --faint: #8b95a3;
+    --line: #e2e6eb; --line2: #eef1f4; --accent: #1a73e8; --accent-ink: #1558c0; --accent-soft: #e8f0fe;
+    --red: #c5221f; --red-soft: #fce8e6; --amber: #a55b00; --amber-soft: #fef3e0;
     --green: #137333; --green-soft: #e6f4ea; --purple: #7b1fa2; --purple-soft: #f3e8fd;
-    --radius: 8px;
+    --teal: #00796b; --teal-soft: #e0f2f1; --navy: #1f3864;
+    --radius: 10px; --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { font: 13px/1.4 "Google Sans", Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  body { font: 13px/1.42 "Google Sans Text", "Google Sans", Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); }
   button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: var(--accent); }
   .num { font-variant-numeric: tabular-nums; }
-  .muted { color: var(--muted); } .faint { color: var(--faint); }
+  .muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 11px; }
   .hidden { display: none !important; }
+  .grow { flex: 1; min-width: 0; }
+  .row { display: flex; align-items: center; gap: 6px; }
+  .between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Top bar */
-  .top { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); }
-  .top-row { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
-  .top-row select { flex: 1; min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-weight: 600; }
-  .icon-btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+  .top { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); box-shadow: var(--shadow); }
+  .top-row { display: flex; align-items: center; gap: 5px; padding: 8px 8px 6px; }
+  .scope { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-weight: 600; }
+  .icon-btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 8px; cursor: pointer; white-space: nowrap; line-height: 1.2; }
   .icon-btn:hover { background: var(--accent-soft); }
-  .icon-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-  .tabs { display: flex; padding: 0 6px; gap: 2px; overflow-x: auto; }
-  .tab { flex: 1; border: 0; background: none; padding: 7px 6px 8px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab .count { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--red); color: #fff; font-size: 10px; line-height: 16px; margin-left: 3px; }
+  .icon-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+  .role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent-ink); background: var(--accent-soft); border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
+  .tabs { display: flex; padding: 0 4px; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 1 0 auto; border: 0; background: none; padding: 6px 7px 7px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; font-size: 12px; }
+  .tab .ic { display: block; font-size: 15px; line-height: 1.1; }
+  .full .tab { flex: 0 0 auto; padding: 8px 14px 9px; font-size: 13px; }
+  .full .tab .ic { display: inline; font-size: 14px; margin-right: 4px; }
+  .tab.active { color: var(--accent-ink); border-bottom-color: var(--accent); }
+  .tab .count { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--red); color: #fff; font-size: 10px; line-height: 15px; margin-left: 2px; }
 
   main { padding: 10px; }
-  .full main { padding: 14px 18px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; }
-  .card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .full main { padding: 14px 18px; max-width: 1600px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 6px; }
   .grid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .full .grid.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .full .grid.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .full .grid.k6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; min-width: 0; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; min-width: 0; box-shadow: var(--shadow); }
   .kpi .l { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .kpi .v { font-size: 18px; font-weight: 600; margin-top: 2px; white-space: nowrap; }
-  .kpi .s { font-size: 11px; color: var(--faint); }
+  .kpi .v { font-size: 18px; font-weight: 700; margin-top: 1px; white-space: nowrap; letter-spacing: -.01em; }
+  .kpi .s { font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kpi.click { cursor: pointer; } .kpi.click:hover { border-color: var(--accent); }
+  .kpi.red .v { color: var(--red); } .kpi.amber .v { color: var(--amber); } .kpi.green .v { color: var(--green); }
 
   .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; line-height: 17px; white-space: nowrap; background: #eef0f3; color: var(--muted); }
   .pill.red { background: var(--red-soft); color: var(--red); }
   .pill.amber { background: var(--amber-soft); color: var(--amber); }
   .pill.green { background: var(--green-soft); color: var(--green); }
-  .pill.blue { background: var(--accent-soft); color: var(--accent); }
+  .pill.blue { background: var(--accent-soft); color: var(--accent-ink); }
   .pill.purple { background: var(--purple-soft); color: var(--purple); }
+  .pill.teal { background: var(--teal-soft); color: var(--teal); }
+  .pill.solid { background: var(--navy); color: #fff; }
+  .tags { display: flex; gap: 4px; flex-wrap: wrap; }
 
   /* Lists */
   .search { display: flex; gap: 6px; margin-bottom: 8px; }
-  .search input { flex: 1; min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
-  .search select { padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; max-width: 45%; }
+  .search input { flex: 1; min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .search select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: #fff; max-width: 45%; }
   .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
   .chip { border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 2px 9px; cursor: pointer; font-size: 12px; white-space: nowrap; }
   .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
   .chip .n { opacity: .75; margin-left: 3px; }
-  .list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-  .item { display: flex; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--line); cursor: pointer; align-items: flex-start; }
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .item { display: flex; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--line2); cursor: pointer; align-items: flex-start; }
   .item:last-child { border-bottom: 0; }
-  .item:hover { background: #f8fafd; }
+  .item:hover { background: #f7faff; }
   .item .main { flex: 1; min-width: 0; }
   .item .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item .sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item .right { text-align: right; white-space: nowrap; }
-  .item .amt { font-weight: 600; }
-  .item .tags { margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .item .amt { font-weight: 700; }
+  .item .tags { margin-top: 3px; }
   .item input[type=checkbox] { margin-top: 3px; }
   .empty { padding: 18px; text-align: center; color: var(--faint); }
   .dots { display: inline-flex; gap: 2px; vertical-align: middle; }
-  .dot { width: 8px; height: 8px; border-radius: 2px; background: #e3e6ea; }
+  .dot { width: 8px; height: 8px; border-radius: 2px; background: #e3e6ea; display: inline-block; }
   .dot.d-yes { background: #34a853; } .dot.d-ptp { background: var(--accent); } .dot.d-exp { background: #7b1fa2; }
   .dot.d-nd { background: #9aa0a6; } .dot.d-no { background: #ea4335; } .dot.d-leave { background: #fbbc04; }
   .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 6px; }
   .legend span { display: inline-flex; align-items: center; gap: 4px; }
 
-  /* Tables (full mode) */
+  /* Tables */
   table { width: 100%; border-collapse: collapse; }
-  th, td { white-space: nowrap; padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
-  th { font-size: 11px; color: var(--muted); font-weight: 600; background: #fafbfc; position: sticky; top: 0; cursor: pointer; white-space: nowrap; }
+  th, td { white-space: nowrap; padding: 6px 8px; border-bottom: 1px solid var(--line2); text-align: left; vertical-align: middle; }
+  th { font-size: 11px; color: var(--muted); font-weight: 600; background: #f8fafc; position: sticky; top: 0; z-index: 1; }
+  th[data-sort] { cursor: pointer; }
   td.r, th.r { text-align: right; }
-  tr.sel td { background: #f1f6fe; }
-  tr.clickable { cursor: pointer; } tr.clickable:hover td { background: #f8fafd; }
-  .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; }
+  tr.sel td { background: #eef4ff; }
+  tr.clickable { cursor: pointer; } tr.clickable:hover td { background: #f7faff; }
+  tr.tot td { font-weight: 700; background: #f8fafc; }
+  .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; box-shadow: var(--shadow); }
+  td.wrap { white-space: normal; min-width: 160px; max-width: 280px; }
 
-  /* Detail */
-  .back { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; margin-bottom: 8px; font-weight: 500; }
-  .title { font-size: 16px; font-weight: 700; margin: 0; }
-  .full .title { font-size: 20px; }
-  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12px; }
-  .kv div:nth-child(odd) { color: var(--muted); white-space: nowrap; }
-  .kv div:nth-child(even) { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
-  .kv div.open { -webkit-line-clamp: unset; }
-  .bar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; background: #eef0f3; margin: 6px 0 4px; }
+  /* PAN view */
+  .back { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; margin-bottom: 8px; font-weight: 600; }
+  .hero { background: linear-gradient(135deg, #1f3864 0%, #2b5aa8 100%); color: #fff; border-radius: 12px; padding: 12px 12px 10px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .hero .title { font-size: 16px; font-weight: 700; margin: 0; line-height: 1.25; }
+  .full .hero .title { font-size: 20px; }
+  .hero .sub { color: #cfe0ff; font-size: 12px; margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .hero .pill { background: rgba(255, 255, 255, .16); color: #fff; }
+  .hero .pill.red { background: #ffd9d6; color: #8c1d18; } .hero .pill.amber { background: #ffe8c2; color: #7a4300; }
+  .hero .pill.green { background: #d6f5df; color: #0d5c2a; } .hero .pill.purple { background: #efdcfb; color: #5c1480; }
+  .hero .k4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+  .full .hero .k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .hero .k { background: rgba(255, 255, 255, .1); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+  .hero .k .l { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #cfe0ff; }
+  .hero .k .v { font-size: 16px; font-weight: 700; white-space: nowrap; }
+  .hero .k .s { font-size: 10px; color: #cfe0ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .copy-mini { border: 0; background: rgba(255, 255, 255, .16); color: #fff; border-radius: 5px; padding: 0 5px; cursor: pointer; font-size: 11px; }
+  .bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #eef0f3; margin: 8px 0 4px; }
+  .hero .bar { background: rgba(255, 255, 255, .15); }
   .bar div { height: 100%; }
-  .blegend { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 3px 10px; font-size: 11px; }
+  .blegend { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 2px 10px; font-size: 11px; }
+  .hero .blegend { color: #dbe7ff; }
   .blegend span i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
-  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-  .btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 6px 11px; cursor: pointer; font-weight: 500; }
+  .actionbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 6px; margin-bottom: 10px; }
+  .abtn { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 4px; cursor: pointer; font-weight: 600; font-size: 12px; text-align: center; box-shadow: var(--shadow); }
+  .abtn .i { display: block; font-size: 16px; line-height: 1.2; }
+  .abtn:hover { border-color: var(--accent); background: #f7faff; }
+  .abtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .abtn.primary:hover { background: var(--accent-ink); }
+  .menu { position: absolute; right: 0; top: 100%; margin-top: 4px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14); z-index: 30; min-width: 200px; padding: 4px; }
+  .menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 7px; cursor: pointer; }
+  .menu button:hover { background: var(--accent-soft); }
+  .btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 11px; cursor: pointer; font-weight: 500; }
   .btn:hover { background: #f4f6f8; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .btn.primary:hover { background: #1765cc; }
+  .btn.primary:hover { background: var(--accent-ink); }
   .btn.danger { color: var(--red); }
   .btn:disabled { opacity: .5; cursor: default; }
   .btn.sm { padding: 3px 8px; font-size: 12px; }
-  .selbar { position: sticky; bottom: 0; background: #202124; color: #fff; border-radius: var(--radius); padding: 8px 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; z-index: 5; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .selbar { position: sticky; bottom: 6px; background: #202124; color: #fff; border-radius: 10px; padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; z-index: 5; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
   .selbar .btn { border-color: #5f6368; background: #303134; color: #fff; }
   .selbar .btn.primary { background: var(--accent); border-color: var(--accent); }
-  .inv { padding: 8px 10px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; }
+  .bulkptp { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: var(--accent-soft); border: 1px solid #c9dafc; border-radius: 10px; padding: 7px 9px; margin-bottom: 8px; font-size: 12px; }
+  .bulkptp b { color: var(--accent-ink); }
+  .bulkptp select, .bulkptp input { padding: 4px 6px; border: 1px solid #c9dafc; border-radius: 6px; background: #fff; }
+  .inv { padding: 8px 10px; border-bottom: 1px solid var(--line2); display: flex; gap: 8px; }
   .inv:last-child { border-bottom: 0; }
-  .inv.sel { background: #f1f6fe; }
+  .inv.sel { background: #eef4ff; }
   .inv .main { flex: 1; min-width: 0; }
-  .two { display: flex; justify-content: space-between; gap: 8px; }
-  .detail-grid { display: grid; gap: 10px; }
-  .full .detail-grid { grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
+  .ptp-in { padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 12px; width: 126px; }
+  .ptp-in.set { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .ptp-in.late { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+  .ptp-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .detail-grid { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+  .detail-grid > div, .cols2 > div, .cols3 > div, .grid > * { min-width: 0; }
+  .bulkptp select { max-width: 100%; min-width: 0; flex: 1 1 140px; }
+  .full .detail-grid { grid-template-columns: 360px minmax(0, 1fr); align-items: start; }
+  .sec { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; box-shadow: var(--shadow); overflow: hidden; }
+  .sec > summary { list-style: none; cursor: pointer; padding: 9px 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .sec > summary::-webkit-details-marker { display: none; }
+  .sec > summary .hint { margin-left: auto; font-weight: 400; color: var(--faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+  .sec > summary::after { content: '▸'; color: var(--faint); transition: transform .15s; }
+  .sec[open] > summary::after { transform: rotate(90deg); }
+  .sec .body { padding: 0 12px 11px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; }
+  .kv > div:nth-child(odd) { color: var(--muted); white-space: nowrap; }
+  .kv > div:nth-child(even) { min-width: 0; overflow-wrap: anywhere; }
+  .kv > div.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .kv > div.clamp.open { display: block; }
+  .kv > div.clamp:not(.open)::after { content: ''; }
+  body:not(.full) .kv { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  body:not(.full) .kv > div:nth-child(odd) { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; margin-top: 7px; }
+  .preview th { position: static; }
+  .form-actions { z-index: 4; }
+  .remark { background: #f8fafc; border: 1px solid var(--line2); border-radius: 8px; padding: 7px 9px; white-space: pre-wrap; }
+  .remark.tl { background: var(--amber-soft); border-color: #f6dfb6; }
   .timeline { display: flex; flex-direction: column; gap: 8px; }
   .tl { border-left: 3px solid var(--line); padding-left: 8px; }
   .tl.PTP { border-color: var(--accent); } .tl.Call { border-color: #34a853; } .tl.Email { border-color: #fbbc04; }
-  .tl.Status { border-color: var(--purple); } .tl.WhatsApp { border-color: #25d366; }
+  .tl.Status { border-color: var(--purple); } .tl.WhatsApp { border-color: #25d366; } .tl.IO { border-color: var(--teal); }
+  .tl.Reassigned { border-color: var(--red); }
   .tl .h { font-size: 11px; color: var(--muted); }
-  details summary { cursor: pointer; color: var(--muted); font-weight: 500; }
+  .cal { display: flex; gap: 3px; flex-wrap: wrap; }
+  .cal div { text-align: center; font-size: 9px; color: var(--faint); }
+  .cal i { display: block; width: 16px; height: 16px; border-radius: 4px; margin: 0 auto 1px; background: #e3e6ea; }
 
   /* Forms / modal */
   .overlay { position: fixed; inset: 0; background: rgba(32, 33, 36, .45); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
   .full .overlay { align-items: center; }
-  .sheet { background: #fff; width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; border-radius: 12px 12px 0 0; padding: 14px; }
-  .full .sheet { border-radius: 12px; }
+  .sheet { background: #fff; width: 100%; max-width: 620px; max-height: 94vh; overflow: auto; border-radius: 14px 14px 0 0; padding: 14px; }
+  .sheet.wide { max-width: 980px; }
+  .full .sheet { border-radius: 14px; }
   .sheet h2 { margin: 0 0 10px; font-size: 16px; }
   .field { margin-bottom: 10px; }
   .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .03em; }
-  .field input, .field select, .field textarea { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
-  .field textarea { min-height: 60px; resize: vertical; }
+  .field input, .field select, .field textarea { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .field textarea { min-height: 58px; resize: vertical; }
   .quick { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
   .check { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
-  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; position: sticky; bottom: -14px; background: #fff; padding: 8px 0; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px; position: sticky; bottom: -14px; background: #fff; padding: 8px 0; }
   .amt-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
-  .amt-row input { width: 110px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; text-align: right; }
+  .amt-row input { width: 120px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; text-align: right; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; padding: 5px 10px; cursor: pointer; font-size: 12px; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .preview { border: 1px solid var(--line); border-radius: 10px; padding: 12px; max-height: 42vh; overflow: auto; background: #fff; }
+  .mail-cols { display: flex; gap: 4px; flex-wrap: wrap; }
 
-  .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #202124; color: #fff; padding: 8px 14px; border-radius: 6px; z-index: 100; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.25); max-width: 90%; }
+  .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #202124; color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 100; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.25); max-width: 92%; }
   .toast.err { background: var(--red); }
   .loading { padding: 30px; text-align: center; color: var(--muted); }
   .spinner { width: 22px; height: 22px; border: 3px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+  .section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
   .progress { height: 6px; background: #eef0f3; border-radius: 3px; overflow: hidden; margin-top: 4px; }
   .progress div { height: 100%; background: var(--accent); }
   .lb-me td { background: var(--accent-soft); font-weight: 600; }
-  .full .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .full .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cols2, .cols3 { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+  .full .cols2 { grid-template-columns: 1fr 1fr; }
+  .full .cols3 { grid-template-columns: repeat(3, 1fr); }
+  .ring-card { display: flex; align-items: center; gap: 12px; }
+  .banner { background: var(--amber-soft); border: 1px solid #f6dfb6; color: #6b3d00; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
+  .health { display: flex; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line2); }
+  .health:last-child { border-bottom: 0; }
+  .health .ic { font-size: 16px; line-height: 1.2; }
+  .asof { font-size: 11px; color: var(--faint); }
   svg text { font-family: inherit; }
+  kbd { font: 11px/1 monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 4px; background: #fff; }
 </style>
 </head>
 <body data-mode="<?= mode ?>" data-pan="<?= startPan ?>">
 <div class="top">
   <div class="top-row">
-    <select id="me" title="Whose tracker"></select>
-    <button class="icon-btn" id="followBtn" title="Follow the PAN you click in the sheet">🎯 Follow</button>
+    <select class="scope" id="scope" title="Whose book"></select>
+    <span class="role hidden" id="roleChip"></span>
+    <button class="icon-btn" id="searchBtn" title="Search any PAN, customer, brand or invoice (Ctrl+K)">🔍</button>
+    <button class="icon-btn" id="followBtn" title="Follow: click a PAN row in the sheet to open it here">🎯</button>
     <button class="icon-btn" id="refreshBtn" title="Reload data">↻</button>
-    <button class="icon-btn" id="expandBtn" title="Open full-screen">⤢</button>
+    <button class="icon-btn" id="expandBtn" title="Open the large workbench window">⤢</button>
   </div>
-  <div class="tabs" id="tabs">
-    <button class="tab" data-tab="today">Today<span class="count hidden" id="todayCount"></span></button>
-    <button class="tab" data-tab="pans">My PANs</button>
-    <button class="tab" data-tab="ptps">PTPs<span class="count hidden" id="ptpCount"></span></button>
-    <button class="tab" data-tab="stats">Productivity</button>
-  </div>
+  <nav class="tabs" id="tabs"></nav>
 </div>
 <main id="view"><div class="loading"><div class="spinner"></div>Loading your workbench…</div></main>
 <div id="modal"></div>
@@ -180,14 +260,18 @@
   var START_PAN = document.body.getAttribute('data-pan') || '';
   if (MODE === 'full') document.body.classList.add('full');
   if (MODE === 'full') document.getElementById('expandBtn').classList.add('hidden');
-  if (MODE !== 'sidebar') document.getElementById('followBtn').classList.add('hidden');
+
 
   var S = {
-    init: null, me: '', tab: 'today', book: null, ptps: null, stats: null,
-    pan: null, panData: null, sel: {}, bookSel: {},
-    filter: 'all', sort: 'priority', q: '', follow: false, lastSelPan: '', invSort: { k: 'ageing', d: -1 },
-    showAllRows: false
+    init: null, scope: null, scopeKey: '', tab: 'today', book: null, ptps: null, io: null, stats: null, team: null, overview: null,
+    pan: null, panData: null, sel: {}, bookSel: {}, invFilter: 'all',
+    filter: 'all', sort: 'priority', q: '', follow: MODE === 'sidebar', lastSelPan: null, invSort: { k: 'ageing', d: -1 },
+    showZero: false, openSec: {}, ioFilter: 'pending', ioQ: '', ovSort: { k: 'overdue', d: -1 }
   };
+  var TABS = [
+    ['today', '🏠', 'Today'], ['pans', '📒', 'PANs'], ['ptps', '🤝', 'PTPs'], ['io', '✍️', 'IO'],
+    ['stats', '📈', 'Stats'], ['team', '👥', 'Team'], ['overview', '🧭', 'Overview']
+  ];
   var BUCKETS = [
     ['b0', 'Not due', '#9aa0a6'], ['b1', '0-30', '#81c995'], ['b2', '31-60', '#fdd663'],
     ['b3', '61-90', '#fbbc04'], ['b4', '91-120', '#f29900'], ['b5', '121-150', '#ea4335'], ['b6', '>150', '#a50e0e']
@@ -211,16 +295,22 @@
     else s = Math.round(a).toLocaleString('en-IN');
     return (n < 0 ? '-' : '') + '₹' + s;
   }
+  function money(n) { return (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function fd(k) { return k ? k.slice(8, 10) + ' ' + MON[+k.slice(5, 7) - 1] + ' ' + k.slice(2, 4) : ''; }
   function fds(k) { return k ? k.slice(8, 10) + ' ' + MON[+k.slice(5, 7) - 1] : ''; }
+  function fdm(k) { return k ? k.slice(8, 10) + '-' + MON[+k.slice(5, 7) - 1] + '-' + k.slice(0, 4) : ''; }
   function addDays(k, n) { var d = new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10))); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   function dow(k) { return new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10))).getUTCDay(); }
   function nextWeekday(k, wd) { var d = addDays(k, 1); while (dow(d) !== wd) d = addDays(d, 1); return d; }
   function nextWorkday(k) { var d = addDays(k, 1); while (dow(d) === 0) d = addDays(d, 1); return d; }
+  function monthEnd(k) { return k.slice(0, 8) + String(new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 0)).getUTCDate()); }
   function pct(x) { return x == null ? '–' : Math.round(x * 100) + '%'; }
   function today() { return S.init.today; }
   function $(id) { return document.getElementById(id); }
+  function all(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+  function on(sel, ev, fn) { all(sel).forEach(function (el) { el.addEventListener(ev, function (e) { fn.call(el, e, el); }); }); }
+  function sum(arr, k) { return arr.reduce(function (s, r) { return s + (Number(typeof k === 'function' ? k(r) : r[k]) || 0); }, 0); }
   function toast(msg, err) {
     var t = document.createElement('div');
     t.className = 'toast' + (err ? ' err' : '');
@@ -228,221 +318,367 @@
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, err ? 6000 : 2800);
   }
-  function fail(e) { toast((e && e.message) || String(e), true); }
-  function loading(msg) { $('view').innerHTML = '<div class="loading"><div class="spinner"></div>' + esc(msg || 'Loading…') + '</div>'; }
+  function fail(e) {
+    var m = (e && e.message) || String(e);
+    // An error while the screen is still loading stays on screen (with Retry) instead of a toast that vanishes.
+    if (document.querySelector('#view .loading')) {
+      $('view').innerHTML = '<div class="card"><h3>Something went wrong</h3><p style="color:var(--red)">' + esc(m) + '</p>' +
+        '<p class="muted small">Try again. If it keeps happening, an admin can run <b>🧾 AR Workbench → Check speed</b> and share the result.</p>' +
+        '<button class="btn primary" id="retryBtn">↻ Retry</button></div>';
+      $('retryBtn').onclick = function () { location.reload(); };
+    } else toast(m, true);
+  }
+  var loadTimer = null;
+  function loading(msg) {
+    $('view').innerHTML = '<div class="loading"><div class="spinner"></div><div id="loadMsg">' + esc(msg || 'Loading…') + '</div><div class="faint small" id="loadHint" style="margin-top:6px"></div></div>';
+    clearTimeout(loadTimer);
+    var t0 = Date.now();
+    var tick = function () {
+      var h = $('loadHint'); if (!h) return;
+      var s = Math.round((Date.now() - t0) / 1000);
+      h.textContent = s < 12 ? '' : s < 60 ? s + ' s · the first load of the day reads every invoice once – later opens are quick'
+        : s + ' s · still working. Very large books take up to 2 minutes the first time.';
+      loadTimer = setTimeout(tick, 1000);
+    };
+    loadTimer = setTimeout(tick, 1000);
+  }
+  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('wb2_' + k) || 'null'); localStorage.setItem('wb2_' + k, JSON.stringify(v)); } catch (e) { return null; } }
   function statusPill(s) {
     if (!s) return '';
-    var c = /Broken|Missed/.test(s) ? 'red' : /Due Today|Partially/.test(s) ? 'amber' : /Kept|^Paid/.test(s) ? 'green' : /Given/.test(s) ? 'blue' : '';
+    var c = /Broken|Breached/.test(s) ? 'red' : /Due Today|Partially/.test(s) ? 'amber' : /Kept|^Paid/.test(s) ? 'green' : /Given/.test(s) ? 'blue' : '';
     return '<span class="pill ' + c + '">' + esc(s) + '</span>';
   }
   function tagPill(t) { return t ? '<span class="pill purple">' + esc(t) + '</span>' : ''; }
+  function confPill(c) { return c ? '<span class="pill ' + ({ Red: 'red', Yellow: 'amber', Green: 'green' }[c] || '') + '">● ' + esc(c === 'Yellow' ? 'Amber' : c) + '</span>' : ''; }
+  function ioPill(r) {
+    if (r.io === 'Signed') return '<span class="pill teal">IO ✓</span>';
+    if (r.io === 'Pending') return '<span class="pill amber">IO pending' + (r.ioRate ? ' · ₹' + r.ioRate : '') + '</span>';
+    return '';
+  }
   function dc(v) { return { 'Yes': 'd-yes', 'PTP': 'd-ptp', 'Expected Payment': 'd-exp', 'Invoice Not Due': 'd-nd', 'No': 'd-no', 'Leave': 'd-leave', 'Holiday': 'd-leave' }[v] || (v ? 'd-yes' : ''); }
   function dots(recent) {
-    // recent[0] = today … oldest last; render oldest -> newest
     return '<span class="dots" title="Last 7 days (oldest → today)">' + (recent || []).slice().reverse().map(function (v) {
       return '<i class="dot ' + dc(v) + '" title="' + esc(v || 'no entry') + '"></i>';
     }).join('') + '</span>';
   }
-  function ageBar(r) {
+  function ageBar(r, legend) {
     var tot = BUCKETS.reduce(function (s, b) { return s + Math.max(r[b[0]] || 0, 0); }, 0) || 1;
     return '<div class="bar">' + BUCKETS.map(function (b) {
       var v = Math.max(r[b[0]] || 0, 0);
       return v ? '<div style="width:' + (v / tot * 100) + '%;background:' + b[2] + '" title="' + b[1] + ': ' + inr(v) + '"></div>' : '';
-    }).join('') + '</div><div class="blegend">' + BUCKETS.map(function (b) {
+    }).join('') + '</div>' + (legend === false ? '' : '<div class="blegend">' + BUCKETS.map(function (b) {
       return '<span><i style="background:' + b[2] + '"></i>' + b[1] + ' <b class="num">' + inr(r[b[0]] || 0) + '</b></span>';
-    }).join('') + '</div>';
+    }).join('') + '</div>');
+  }
+  function kpi(label, value, sub, filter, cls) {
+    return '<div class="kpi' + (filter ? ' click' : '') + (cls ? ' ' + cls : '') + '"' + (filter ? ' data-f="' + filter + '"' : '') + '><div class="l">' + esc(label) +
+      '</div><div class="v num">' + value + '</div><div class="s">' + (sub || '&nbsp;') + '</div></div>';
+  }
+  function ptpLive(date, net) {
+    if (!date) return (Number(net) || 0) <= 0 ? 'Paid' : 'PTP Pending';
+    if (date < today()) return 'PTP Broken';
+    if (date === today()) return 'PTP Due Today';
+    return 'PTP Given';
+  }
+  function multi() { return S.book && S.book.names && S.book.names.length > 1; }
+  function isLead() { return S.init && S.init.role !== 'Associate'; }
+  function isMgmt() { return S.init && (S.init.role === 'Management' || S.init.role === 'Admin'); }
+  function asOf(iso, live) {
+    if (live || !iso) return '';
+    var d = new Date(iso);
+    return '<span class="asof">as of ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + '</span>';
   }
 
   // ---------- boot ----------
-  call('wbInit').then(function (init) {
+  loading('Connecting to the sheet…');
+  var bootWatch = setTimeout(function () {
+    fail({ message: 'The sheet has not answered for 2 minutes. An admin can open Extensions → Apps Script → Executions (left bar) to see the error, or run 🧾 AR Workbench → Check speed.' });
+  }, 120000);
+  call('wbBoot', store('scope') || '').then(function (boot) {
+    clearTimeout(bootWatch);
+    var init = boot.init;
+    if (!init || init.version !== '2.0') throw new Error('This window and the script code are different versions. Paste both Code.gs and Workbench.html from the same download, and make sure no older copy of the workbench is left in another script file.');
     S.init = init;
-    var sel = $('me');
-    sel.innerHTML = '<option value="">— Select your name —</option>' + init.associates.map(function (a) {
-      return '<option' + (a === init.me ? ' selected' : '') + '>' + esc(a) + '</option>';
-    }).join('');
-    S.me = init.me;
-    sel.onchange = function () { S.me = sel.value; call('wbSetMe', S.me); S.book = S.ptps = S.stats = null; S.pan = null; go(S.tab); };
-    if (START_PAN) { openPan(START_PAN); return; }
-    go('today');
-  }).catch(fail);
+    buildScope(boot.key);
 
-  document.getElementById('tabs').addEventListener('click', function (e) {
+    buildTabs();
+    var rc = $('roleChip');
+    rc.textContent = init.role === 'Admin' && !init.rolesConfigured ? 'Set-up' : init.role;
+    rc.classList.toggle('hidden', init.role === 'Associate' || MODE === 'sidebar');
+    $('scope').title = 'Signed in as ' + (init.email || 'unknown') + ' · ' + init.role;
+    $('followBtn').classList.toggle('on', S.follow);
+    if (S.follow) poll();
+    if (S.book) badges();
+    if (START_PAN) { openPan(START_PAN); return; }
+    go(S.scope ? 'today' : 'today');
+  }).catch(function (e) { clearTimeout(bootWatch); fail(e); });
+
+  function scopeOptions() {
+    var i = S.init, o = [];
+    var mine = i.me && i.associates.indexOf(i.me) >= 0;
+    if (i.role === 'Associate') {
+      if (!mine) o.push(['', '— Select your name —']);
+      (i.restrict && mine ? [i.me] : i.associates).forEach(function (a) { o.push(['a:' + a, (a === i.me ? '🙋 ' : '') + a]); });
+      return o;
+    }
+    if (i.role === 'Team Lead') {
+      o.push(['t:' + i.me, '👥 My team (' + i.myTeam.length + ')']);
+      i.myTeam.forEach(function (a) { o.push(['a:' + a, '· ' + a]); });
+      if (!i.restrict) i.associates.filter(function (a) { return i.myTeam.indexOf(a) < 0; }).forEach(function (a) { o.push(['a:' + a, a]); });
+      return o;
+    }
+    o.push(['all', '🌐 Everyone (' + i.associates.length + ' associates)']);
+    i.teamLeads.forEach(function (t) { o.push(['t:' + t, '👥 Team ' + t]); });
+    i.associates.forEach(function (a) { o.push(['a:' + a, a]); });
+    return o;
+  }
+  function buildScope(key) {
+    var opts = scopeOptions();
+    if (!opts.some(function (o) { return o[0] === key; })) key = opts[0][0];
+    $('scope').innerHTML = opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === key ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('');
+    setScope(key, true);
+    if (key) store('scope', key);
+    $('scope').onchange = function () {
+      setScope(this.value);
+      if (this.value.indexOf('a:') === 0 && S.init.role === 'Associate') call('wbSetMe', this.value.slice(2));
+      S.pan = null; go(S.tab);
+    };
+  }
+  function setScope(key, quiet) {
+    S.scopeKey = key;
+    S.scope = !key ? null : key === 'all' ? { all: true } : key.indexOf('t:') === 0 ? { teamLead: key.slice(2) } : { assoc: key.slice(2) };
+    S.book = S.ptps = S.io = S.stats = S.team = null;
+    S.bookSel = {};
+    if (!quiet) store('scope', key);
+    if (S.init.role === 'Associate' && S.scope && S.scope.assoc) S.init.me = S.scope.assoc;
+  }
+  function buildTabs() {
+    var allowed = TABS.filter(function (t) {
+      if (t[0] === 'team') return isLead();
+      if (t[0] === 'overview') return isMgmt();
+      return true;
+    });
+    $('tabs').innerHTML = allowed.map(function (t) {
+      return '<button class="tab" data-tab="' + t[0] + '"><span class="ic">' + t[1] + '</span>' + t[2] +
+        (t[0] === 'today' ? '<span class="count hidden" id="todayCount"></span>' : t[0] === 'ptps' ? '<span class="count hidden" id="ptpCount"></span>' : '') + '</button>';
+    }).join('');
+  }
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('#aMore')) all('.menu').forEach(function (m) { m.classList.add('hidden'); });
+  });
+  $('tabs').addEventListener('click', function (e) {
     var b = e.target.closest('.tab'); if (!b) return;
     S.pan = null; go(b.getAttribute('data-tab'));
   });
   $('refreshBtn').onclick = function () {
-    S.book = S.ptps = S.stats = null;
-    loading('Refreshing invoice data…');
-    call('wbRefresh').then(function (r) { toast('Refreshed · ' + r.invoices + ' open invoices'); if (S.pan) openPan(S.pan); else go(S.tab); }).catch(fail);
+    S.book = S.ptps = S.io = S.stats = S.team = S.overview = null;
+    loading('Refreshing data…');
+    call('wbRefresh').then(function (r) { toast('Refreshed · ' + r.invoices + ' open invoices'); if (S.pan) openPan(S.pan); else go(S.tab, true); }).catch(fail);
   };
-  $('expandBtn').onclick = function () { google.script.run.WB_openFullScreen(S.pan || ''); };
+  $('expandBtn').onclick = function () { google.script.run.WB_openWindow(S.pan || ''); };
+  $('searchBtn').onclick = searchForm;
   $('followBtn').onclick = function () {
     S.follow = !S.follow;
+    S.lastSelPan = null;
     this.classList.toggle('on', S.follow);
-    toast(S.follow ? 'Click any PAN row in the sheet to open it here' : 'Follow selection off');
+    toast(S.follow ? 'Follow on: click a PAN row in the sheet to open it here' : 'Follow off');
     if (S.follow) poll();
   };
   function poll() {
     if (!S.follow) return;
-    if (document.hidden) { setTimeout(poll, 2000); return; }
+    if (document.hidden || $('modal').innerHTML) { setTimeout(poll, 2000); return; }
     call('wbGetSelection').then(function (s) {
-      if (s.pan && s.pan !== S.lastSelPan) { S.lastSelPan = s.pan; openPan(s.pan); }
+      if (S.lastSelPan === null) S.lastSelPan = s.pan; // opening the panel never jumps to whatever cell happens to be selected
+      if (s.pan && s.pan !== S.lastSelPan) { S.lastSelPan = s.pan; if (!S.pan || S.pan !== s.pan) openPan(s.pan); }
       setTimeout(poll, 1200);
     }).catch(function () { setTimeout(poll, 4000); });
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
-      var q = $('q'); if (q) { e.preventDefault(); q.focus(); }
+    var typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); searchForm(); return; }
+    if (e.key === '/' && !typing) {
+      var q = $('q'); e.preventDefault(); if (q) q.focus(); else searchForm();
     }
-    if (e.key === 'Escape') { if ($('modal').innerHTML) closeModal(); else if (S.pan) { S.pan = null; go(S.tab); } }
+    if (e.key === 'Escape') {
+      if ($('modal').innerHTML) closeModal();
+      else if (S.pan) { S.pan = null; go(S.tab); }
+    }
   });
 
   function setTabs() {
-    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
-      t.classList.toggle('active', !S.pan && t.getAttribute('data-tab') === S.tab);
-    });
+    all('.tab').forEach(function (t) { t.classList.toggle('active', !S.pan && t.getAttribute('data-tab') === S.tab); });
   }
-  function needMe() {
-    if (S.me) return false;
-    $('view').innerHTML = '<div class="card"><h3>Welcome 👋</h3><p>Pick your name at the top to load your tracker. ' +
-      'Tip: opening the workbench from your own tab selects you automatically.</p></div>';
+  function needScope() {
+    if (S.scope) return false;
+    $('view').innerHTML = '<div class="card"><h3>Welcome 👋</h3><p>Pick your name at the top to load your book. ' +
+      'Tip: open the workbench from your own tab and you are picked automatically.</p></div>';
     return true;
   }
-  function go(tab) {
+  function go(tab, force) {
     S.tab = tab; setTabs();
-    if (needMe()) return;
+    if (tab !== 'overview' && tab !== 'team' && needScope()) return;
     if (tab === 'today' || tab === 'pans') return ensureBook().then(tab === 'today' ? renderToday : renderPans).catch(fail);
     if (tab === 'ptps') return ensurePtps().then(renderPtps).catch(fail);
-    if (tab === 'stats') { loading('Crunching productivity…'); return call('wbGetProductivity', S.me).then(function (d) { S.stats = d; renderStats(); }).catch(fail); }
+    if (tab === 'io') { if (!S.io) loading('Loading IO sign-offs…'); return (S.io ? Promise.resolve(S.io) : call('wbGetIo', S.scope)).then(function (d) { S.io = d; renderIo(); }).catch(fail); }
+    if (tab === 'stats') {
+      var who = S.scope.assoc || (S.book && S.book.names[0]) || (S.init.myTeam || [])[0] || S.init.associates[0];
+      loading('Crunching productivity…');
+      return call('wbGetProductivity', who).then(function (d) { S.stats = d; S.stats.who = who; renderStats(); }).catch(fail);
+    }
+    if (tab === 'team') {
+      var tl = S.scope && S.scope.teamLead ? S.scope.teamLead : S.init.role === 'Team Lead' ? S.init.me : '';
+      loading('Reviewing ' + (tl ? tl + '’s team' : 'every associate') + '…');
+      return call('wbGetTeamReview', tl, !!force).then(function (d) { S.team = d; renderTeam(); }).catch(fail);
+    }
+    if (tab === 'overview') {
+      loading('Building the overview (reads every tab the first time)…');
+      return call('wbGetOverview', !!force).then(function (d) { S.overview = d; renderOverview(); }).catch(fail);
+    }
   }
   function ensureBook() {
-    if (S.book && S.book.assoc === S.me) return Promise.resolve();
-    loading('Loading ' + S.me + '’s PANs…');
-    return Promise.all([call('wbGetBook', S.me), call('wbGetPtps', S.me)]).then(function (r) {
-      S.book = r[0]; S.ptps = r[1]; badges();
-    });
+    if (S.book) return Promise.resolve();
+    loading('Loading ' + ($('scope').selectedOptions[0] || {}).text + '…');
+    return call('wbGetBook', S.scope).then(function (b) { S.book = b; S.ptps = b.ptps; badges(); });
   }
-  function ensurePtps() {
-    if (S.ptps && S.book && S.book.assoc === S.me) return Promise.resolve();
-    return ensureBook();
-  }
+  function ensurePtps() { return S.ptps && S.book ? Promise.resolve() : ensureBook(); }
   function badges() {
     var t = today();
-    var due = S.book.rows.filter(function (r) { return r.ptpBroken || r.ptpDueToday || (r.nextFollowUp && r.nextFollowUp <= t); }).length;
-    var c = $('todayCount'); c.textContent = due; c.classList.toggle('hidden', !due);
+    var due = S.book.rows.filter(function (r) { return r.ptpBroken || r.ptpDueToday || (r.nextFollowUp && r.nextFollowUp <= t && !r.today); }).length;
+    var c = $('todayCount'); if (c) { c.textContent = due; c.classList.toggle('hidden', !due); }
     var br = S.ptps.rows.filter(function (p) { return p.live === 'PTP Broken'; }).length;
-    var p = $('ptpCount'); p.textContent = br; p.classList.toggle('hidden', !br);
+    var p = $('ptpCount'); if (p) { p.textContent = br; p.classList.toggle('hidden', !br); }
   }
 
   // ---------- TODAY ----------
+  function ring(frac, target, label) {
+    var r = 30, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac || 0));
+    var col = f >= target ? '#34a853' : f >= target * .6 ? '#fbbc04' : '#ea4335';
+    var tx = 38 + r * Math.sin(2 * Math.PI * target), ty = 38 - r * Math.cos(2 * Math.PI * target);
+    return '<svg width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="' + esc(label) + '">' +
+      '<circle cx="38" cy="38" r="' + r + '" fill="none" stroke="#eef0f3" stroke-width="8"/>' +
+      (f > 0 ? '<circle cx="38" cy="38" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + (c * f) + ' ' + c + '" transform="rotate(-90 38 38)"/>' : '') +
+      '<circle cx="' + tx + '" cy="' + ty + '" r="3" fill="#1f3864"><title>Target ' + Math.round(target * 100) + '%</title></circle>' +
+      '<text x="38" y="43" text-anchor="middle" font-size="15" font-weight="700" fill="#1b1f24">' + Math.round(f * 100) + '%</text></svg>';
+  }
   function renderToday() {
     var rows = S.book.rows, t = today();
     var active = rows.filter(function (r) { return r.total !== 0 || r.overdue !== 0; });
-    var sum = function (arr, k) { return arr.reduce(function (s, r) { return s + (r[k] || 0); }, 0); };
-    var touched = active.filter(function (r) { return r.today; }).length;
+    var touched = active.filter(function (r) { return /^(Yes|PTP|Expected Payment)$/.test(r.today); }).length;
     var brokenP = S.ptps.rows.filter(function (p) { return p.live === 'PTP Broken'; });
     var dueP = S.ptps.rows.filter(function (p) { return p.live === 'PTP Due Today'; });
     var fu = rows.filter(function (r) { return r.nextFollowUp && r.nextFollowUp <= t && !r.today; });
-    var stale = active.filter(function (r) { return r.overdue > 0 && (r.daysSince === null || r.daysSince >= 3); })
-      .sort(function (a, b) { return b.overdue - a.overdue; });
-    var queue = active.filter(function (r) { return !r.today && r.overdue > 0; })
-      .sort(function (a, b) { return b.priority - a.priority; }).slice(0, 10);
+    var stale = active.filter(function (r) { return r.stale; }).sort(function (a, b) { return b.overdue - a.overdue; });
+    var queue = active.filter(function (r) { return !r.today && r.overdue > 0; }).sort(function (a, b) { return b.priority - a.priority; }).slice(0, 10);
+    var ioWins = rows.filter(function (r) { return r.io === 'Pending' && r.ioRate > 0; }).sort(function (a, b) { return b.ioRate - a.ioRate || b.total - a.total; });
+    var target = (S.init.coverageTarget || 80) / 100;
+    var frac = active.length ? touched / active.length : 0;
+    var left = Math.max(0, Math.ceil(target * active.length) - touched);
     var h = '';
-    h += '<div class="grid k6" style="margin-bottom:10px">' +
+    if (S.init.role === 'Admin' && !S.init.rolesConfigured) {
+      h += '<div class="banner">🛠️ <b>Set-up mode</b>: everyone sees every view until roles are filled in on the <b>WB Settings</b> tab (Team Lead / Management / e-mails).</div>';
+    }
+    h += '<div class="cols2"><div class="card ring-card">' + ring(frac, target, 'Coverage today') +
+      '<div class="grow"><div style="font-weight:700;font-size:15px">' + touched + ' of ' + active.length + ' PANs touched today</div>' +
+      '<div class="muted">' + (left ? '<b>' + left + '</b> more to reach the ' + Math.round(target * 100) + '% goal' : '🎉 Goal reached – keep going!') + '</div>' +
+      '<div class="faint small">Counts Yes · PTP · Expected Payment in today’s column' + (multi() ? ' · ' + S.book.names.length + ' associates' : '') + '</div></div></div>';
+    h += '<div class="grid" style="margin-bottom:10px">' +
       kpi('Overdue', inr(sum(active, 'overdue')), active.filter(function (r) { return r.overdue > 0; }).length + ' PANs', 'overdue') +
-      kpi('>60 days', inr(sum(active, 'gt60')), active.filter(function (r) { return r.gt60 > 0; }).length + ' PANs', 'gt60') +
-      kpi('Possible AR-AP', inr(sum(active, 'possibleArAp')), active.filter(function (r) { return r.possibleArAp > 0; }).length + ' PANs', 'arap') +
-      kpi('Touched today', touched + ' / ' + active.length, '<div class="progress"><div style="width:' + (active.length ? touched / active.length * 100 : 0) + '%"></div></div>', 'untouchedToday') +
-      kpi('Broken PTPs', brokenP.length, inr(brokenP.reduce(function (s, p) { return s + p.outstanding; }, 0)), 'broken') +
-      kpi('Untouched 3d+', stale.length, 'with overdue', 'stale') +
-      '</div>';
+      kpi('>60 days', inr(sum(active, 'gt60')), active.filter(function (r) { return r.gt60 > 0; }).length + ' PANs', 'gt60', 'amber') +
+      kpi('Broken PTPs', brokenP.length, inr(sum(brokenP, 'outstanding')), 'broken', brokenP.length ? 'red' : '') +
+      kpi('Not followed ' + S.init.staleDays + 'd+', stale.length, 'with overdue', 'stale', stale.length ? 'amber' : '') + '</div></div>';
     h += '<div class="cols2">';
     h += section('🔴 Broken PTPs – call back first', brokenP.length, ptpList(brokenP.slice(0, 8)), brokenP.length > 8 ? 'ptps' : '');
-    h += section('📅 PTPs due today', dueP.length, ptpList(dueP), '');
+    h += section('📅 PTPs due today', dueP.length, ptpList(dueP.slice(0, 12)), '');
     h += '</div><div class="cols2">';
-    h += section('⏰ Follow-ups scheduled for today', fu.length, panList(fu.slice(0, 10)), '');
-    h += section('🎯 Suggested next 10 (priority)', queue.length, panList(queue), 'pans');
+    h += section('🎯 Suggested next 10', queue.length, panList(queue), 'untouchedToday');
+    h += section('⏰ Follow-ups due', fu.length, panList(fu.slice(0, 10)), '');
+    h += '</div><div class="cols2">';
+    h += section('💤 Not followed up ' + S.init.staleDays + '+ working days', stale.length, panList(stale.slice(0, 8)), stale.length > 8 ? 'stale' : '');
+    h += section('✍️ IO sign-off quick wins', ioWins.length, panList(ioWins.slice(0, 6), 'io'), ioWins.length ? 'io' : '');
     h += '</div>';
-    h += section('💤 Not followed up for 3+ days (by overdue)', stale.length, panList(stale.slice(0, 10)), stale.length > 10 ? 'stale' : '');
-    h += '<div class="card"><h3>Mark whole day <span class="faint" style="text-transform:none;letter-spacing:0">fills today’s column for every PAN not yet marked</span></h3>' +
-      '<div class="actions"><button class="btn sm" data-day="Leave">🌴 Leave</button><button class="btn sm" data-day="Holiday">🎉 Holiday</button></div></div>';
+    if (S.scope && S.scope.assoc) {
+      h += '<div class="card"><h3>Mark the whole day <span class="faint" style="text-transform:none;letter-spacing:0">fills today’s column for every PAN not marked yet</span></h3>' +
+        '<div class="actions"><button class="btn sm" data-day="Leave">🌴 Leave</button><button class="btn sm" data-day="Holiday">🎉 Holiday</button></div></div>';
+    }
     $('view').innerHTML = h;
     bindPanClicks();
-    Array.prototype.forEach.call(document.querySelectorAll('[data-day]'), function (b) {
-      b.onclick = function () {
-        var v = b.getAttribute('data-day');
-        var pans = S.book.rows.filter(function (r) { return !r.today; }).map(function (r) { return r.pan; });
-        if (!confirm('Mark ' + pans.length + ' PANs as "' + v + '" for today?')) return;
-        call('wbBulkDaily', S.me, pans, v).then(function (r) { toast(r.count + ' PANs marked ' + v); S.book = null; go('today'); }).catch(fail);
-      };
+    on('[data-day]', 'click', function (e, b) {
+      var v = b.getAttribute('data-day');
+      var pans = S.book.rows.filter(function (r) { return !r.today; }).map(function (r) { return r.pan; });
+      if (!confirm('Mark ' + pans.length + ' PANs as "' + v + '" for today?')) return;
+      call('wbBulkDaily', pans, v).then(function (r) { toast(r.count + ' PANs marked ' + v); S.book = null; go('today'); }).catch(fail);
     });
-    Array.prototype.forEach.call(document.querySelectorAll('.kpi.click'), function (k) {
-      k.onclick = function () { S.filter = k.getAttribute('data-f'); S.sort = S.filter === 'broken' ? 'priority' : 'overdue'; go('pans'); };
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-more]'), function (b) {
-      b.onclick = function () { var m = b.getAttribute('data-more'); if (m === 'ptps') go('ptps'); else { S.filter = m === 'pans' ? 'all' : m; go('pans'); } };
-    });
+    on('.kpi.click', 'click', function (e, k) { S.filter = k.getAttribute('data-f'); S.sort = S.filter === 'broken' ? 'priority' : 'overdue'; go('pans'); });
+    bindMore();
   }
-  function kpi(label, value, sub, filter) {
-    return '<div class="kpi' + (filter ? ' click' : '') + '"' + (filter ? ' data-f="' + filter + '"' : '') + '><div class="l">' + esc(label) +
-      '</div><div class="v num">' + value + '</div><div class="s">' + sub + '</div></div>';
+  function bindMore() {
+    on('[data-more]', 'click', function (e, b) {
+      var m = b.getAttribute('data-more');
+      if (m === 'ptps') go('ptps'); else if (m === 'io') go('io'); else { S.filter = m; go('pans'); }
+    });
   }
   function section(title, n, body, more) {
     return '<div><div class="section-title"><span>' + title + ' <span class="faint">(' + n + ')</span></span>' +
       (more ? '<button class="btn sm" data-more="' + more + '">See all</button>' : '') + '</div>' + body + '</div>';
   }
-  function panList(rows) {
+  function panList(rows, mode) {
     if (!rows.length) return '<div class="list"><div class="empty">Nothing here 🎉</div></div>';
-    return '<div class="list">' + rows.map(function (r) { return panItem(r); }).join('') + '</div>';
+    return '<div class="list">' + rows.map(function (r) { return panItem(r, false, mode); }).join('') + '</div>';
   }
-  function panItem(r, withCheck) {
+  function panItem(r, withCheck, mode) {
     var tags = [];
     if (r.ptpBroken) tags.push('<span class="pill red">' + r.ptpBroken + ' PTP broken</span>');
     if (r.ptpDueToday) tags.push('<span class="pill amber">PTP due today</span>');
     else if (r.ptpNext) tags.push('<span class="pill blue">PTP ' + fds(r.ptpNext) + '</span>');
-    if (r.nextFollowUp) tags.push('<span class="pill ' + (r.nextFollowUp <= today() ? 'amber' : '') + '">F/u ' + fds(r.nextFollowUp) + '</span>');
+    if (r.nextFollowUp && !r.today) tags.push('<span class="pill ' + (r.nextFollowUp <= today() ? 'amber' : '') + '">F/u ' + fds(r.nextFollowUp) + '</span>');
     if (r.exposure === 'Yes') tags.push('<span class="pill red">Exposure</span>');
     if (r.possibleArAp > 0) tags.push('<span class="pill purple">AR-AP ' + inr(r.possibleArAp) + '</span>');
+    if (mode === 'io' || r.io === 'Pending' && r.ioRate >= 300) tags.push(ioPill(r));
+    if (r.confidence) tags.push(confPill(r.confidence));
     if (r.today) tags.push('<span class="pill green">✓ ' + esc(r.today) + '</span>');
-    else if (r.daysSince === null) tags.push('<span class="pill">never touched</span>');
-    else if (r.daysSince >= 3) tags.push('<span class="pill amber">' + r.daysSince + 'd since f/u</span>');
+    else if (r.daysSince === null && r.overdue > 0) tags.push('<span class="pill">no follow-up yet</span>');
+    else if (r.stale) tags.push('<span class="pill amber">' + r.daysSince + 'd since f/u</span>');
     return '<div class="item" data-pan="' + esc(r.pan) + '">' +
       (withCheck ? '<input type="checkbox" class="bsel" data-p="' + esc(r.pan) + '"' + (S.bookSel[r.pan] ? ' checked' : '') + '>' : '') +
       '<div class="main"><div class="name">' + esc(r.customer || r.pan) + '</div>' +
-      '<div class="sub">' + esc(r.pan) + (r.brands ? ' · ' + esc(r.brands) : '') + '</div>' +
+      '<div class="sub">' + esc(r.pan) + (multi() || mode === 'owner' ? ' · <b>' + esc(r.owner) + '</b>' : '') + (r.brands ? ' · ' + esc(r.brands) : '') + '</div>' +
       '<div class="tags">' + tags.join('') + '</div></div>' +
-      '<div class="right"><div class="amt num">' + inr(r.overdue) + '</div><div class="sub num">&gt;60: ' + inr(r.gt60) + '</div>' +
+      '<div class="right"><div class="amt num">' + inr(r.overdue) + '</div><div class="sub num">&gt;60 ' + inr(r.gt60) + '</div>' +
       '<div style="margin-top:3px">' + dots(r.recent) + '</div></div></div>';
   }
   function ptpList(list) {
     if (!list.length) return '<div class="list"><div class="empty">Nothing here 🎉</div></div>';
     return '<div class="list">' + list.map(function (p) {
       return '<div class="item" data-pan="' + esc(p.pan) + '"><div class="main"><div class="name">' + esc(p.customer) + '</div>' +
-        '<div class="sub">' + esc(p.invoice) + ' · ' + esc(p.brand) + '</div>' +
+        '<div class="sub">' + esc(p.invoice) + ' · ' + esc(p.brand) + (multi() ? ' · <b>' + esc(p.associate) + '</b>' : '') + '</div>' +
         '<div class="tags">' + statusPill(p.live) + (p.daysLate ? '<span class="pill red">' + p.daysLate + 'd late</span>' : '') + tagPill(p.tag) + '</div></div>' +
         '<div class="right"><div class="amt num">' + inr(p.outstanding) + '</div><div class="sub">PTP ' + fds(p.ptpDate) + '</div></div></div>';
     }).join('') + '</div>';
   }
-  function bindPanClicks() {
-    Array.prototype.forEach.call(document.querySelectorAll('[data-pan]'), function (el) {
+  function bindPanClicks(root) {
+    all((root || '') + ' [data-pan]').forEach(function (el) {
       el.addEventListener('click', function (e) {
-        if (e.target.classList.contains('bsel')) return;
+        if (e.target.closest('.bsel, button, input, a')) return;
         var p = el.getAttribute('data-pan'); if (p) openPan(p);
       });
     });
   }
 
-  // ---------- MY PANs ----------
+  // ---------- PANs ----------
   var FILTERS = [
     ['all', 'All', function () { return true; }],
     ['overdue', 'Overdue', function (r) { return r.overdue > 0; }],
     ['untouchedToday', 'Not done today', function (r) { return !r.today && r.overdue > 0; }],
-    ['stale', 'Untouched 3d+', function (r) { return r.overdue > 0 && (r.daysSince === null || r.daysSince >= 3); }],
+    ['stale', 'Not followed up', function (r) { return r.stale; }],
     ['gt60', '>60 days', function (r) { return r.gt60 > 0; }],
     ['broken', 'PTP broken', function (r) { return r.ptpBroken > 0; }],
     ['ptp', 'PTP open', function (r) { return r.ptpOpen > 0; }],
+    ['noptp', 'Overdue, no PTP', function (r) { return r.overdue > 0 && !r.ptpOpen; }],
     ['arap', 'AR-AP possible', function (r) { return r.possibleArAp > 0; }],
     ['exposure', 'Exposure', function (r) { return r.exposure === 'Yes'; }],
+    ['iopending', 'IO pending', function (r) { return r.io === 'Pending'; }],
+    ['red', 'Red', function (r) { return r.confidence === 'Red'; }],
+    ['noremark', 'No remark', function (r) { return r.overdue > 0 && !r.remarks; }],
     ['notdue', 'Only not-due', function (r) { return r.overdue === 0 && r.b0 > 0; }],
     ['credit', 'Credit balance', function (r) { return r.total < 0; }]
   ];
@@ -453,24 +689,26 @@
     total: ['Total ₹', function (a, b) { return b.total - a.total; }],
     arap: ['AR-AP ₹', function (a, b) { return b.possibleArAp - a.possibleArAp; }],
     stale: ['Days since f/u', function (a, b) { return (b.daysSince === null ? 999 : b.daysSince) - (a.daysSince === null ? 999 : a.daysSince); }],
+    ptp: ['Next PTP', function (a, b) { return (a.ptpNext || '9999') < (b.ptpNext || '9999') ? -1 : 1; }],
     name: ['Name A-Z', function (a, b) { return (a.customer || '').localeCompare(b.customer || ''); }]
   };
   function filteredBook() {
     var f = FILTERS.filter(function (x) { return x[0] === S.filter; })[0] || FILTERS[0];
     var q = S.q.toLowerCase();
     var rows = S.book.rows.filter(function (r) {
-      if (!S.showAllRows && S.filter === 'all' && r.total === 0 && r.overdue === 0) return false;
+      if (!S.showZero && S.filter === 'all' && r.total === 0 && r.overdue === 0) return false;
       if (!f[2](r)) return false;
       if (!q) return true;
-      return (r.pan + ' ' + r.customer + ' ' + r.brands + ' ' + r.kams + ' ' + r.kamMgr).toLowerCase().indexOf(q) >= 0;
+      return (r.pan + ' ' + r.customer + ' ' + r.brands + ' ' + r.kams + ' ' + r.kamMgr + ' ' + r.owner + ' ' + r.remarks).toLowerCase().indexOf(q) >= 0;
     });
     return rows.sort(SORTS[S.sort][1]);
   }
   function renderPans() {
-    var h = '<div class="search"><input id="q" placeholder="Search PAN, customer, brand, KAM…  (press /)" value="' + esc(S.q) + '">' +
+    var h = '<div class="search"><input id="q" placeholder="Search PAN, customer, brand, KAM, remark…  ( / )" value="' + esc(S.q) + '">' +
       '<select id="sort">' + Object.keys(SORTS).map(function (k) { return '<option value="' + k + '"' + (S.sort === k ? ' selected' : '') + '>' + SORTS[k][0] + '</option>'; }).join('') + '</select></div>';
     h += '<div class="chips">' + FILTERS.map(function (f) {
-      var n = S.book.rows.filter(function (r) { return (f[0] !== 'all' || S.showAllRows || r.total !== 0 || r.overdue !== 0) && f[2](r); }).length;
+      var n = S.book.rows.filter(function (r) { return (f[0] !== 'all' || S.showZero || r.total !== 0 || r.overdue !== 0) && f[2](r); }).length;
+      if (!n && f[0] !== 'all' && f[0] !== S.filter) return '';
       return '<button class="chip' + (S.filter === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '<span class="n">' + n + '</span></button>';
     }).join('') + '</div>';
     h += '<div id="panResults"></div>';
@@ -478,239 +716,560 @@
     var q = $('q');
     q.oninput = function () { S.q = q.value; renderPanResults(); };
     $('sort').onchange = function () { S.sort = this.value; renderPanResults(); };
-    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
-      c.onclick = function () { S.filter = c.getAttribute('data-f'); renderPans(); };
-    });
+    on('.chip', 'click', function (e, c) { S.filter = c.getAttribute('data-f'); renderPans(); });
     renderPanResults();
   }
   function renderPanResults() {
     var rows = filteredBook();
-    var sum = function (k) { return rows.reduce(function (s, r) { return s + (r[k] || 0); }, 0); };
     var nSel = Object.keys(S.bookSel).filter(function (k) { return S.bookSel[k]; }).length;
-    var h = '<div class="two muted" style="font-size:12px;margin-bottom:6px"><span>' + rows.length + ' PANs · overdue <b class="num">' + inr(sum('overdue')) +
-      '</b> · &gt;60 <b class="num">' + inr(sum('gt60')) + '</b></span>' +
-      '<label class="check" style="margin:0"><input type="checkbox" id="showZero"' + (S.showAllRows ? ' checked' : '') + '> show zero-balance</label></div>';
+    var h = '<div class="between muted" style="font-size:12px;margin-bottom:6px"><span>' + rows.length + ' PANs · overdue <b class="num">' + inr(sum(rows, 'overdue')) +
+      '</b> · &gt;60 <b class="num">' + inr(sum(rows, 'gt60')) + '</b> ' + asOf(S.book.builtAt, S.book.live) + '</span>' +
+      (S.book.live ? '<label class="check" style="margin:0"><input type="checkbox" id="showZero"' + (S.showZero ? ' checked' : '') + '> zero-balance</label>' : '') + '</div>';
+    var cap = MODE === 'full' ? 600 : 250;
     if (MODE === 'full') {
-      h += '<div class="table-wrap" style="max-height:calc(100vh - 250px)"><table><thead><tr><th><input type="checkbox" id="bAll"></th><th>Customer / PAN</th><th>Brands</th><th>Biz model</th>' +
-        '<th class="r">Not due</th><th class="r">0-60</th><th class="r">61-150</th><th class="r">&gt;150</th><th class="r">Overdue</th><th class="r">Net payable</th><th class="r">AR-AP</th>' +
-        '<th>Last 7d</th><th>Status</th><th>Remarks</th></tr></thead><tbody>' +
-        rows.slice(0, 600).map(function (r) {
+      h += '<div class="table-wrap" style="max-height:calc(100vh - 250px)"><table><thead><tr><th><input type="checkbox" id="bAll"></th><th>Customer / PAN</th>' + (multi() ? '<th>Associate</th>' : '') +
+        '<th>Brands</th><th class="r">Not due</th><th class="r">0-60</th><th class="r">61-150</th><th class="r">&gt;150</th><th class="r">Overdue</th><th class="r">AR-AP</th>' +
+        '<th>Last 7d</th><th>PTP</th><th>IO</th><th>R/A/G</th><th>Remarks</th></tr></thead><tbody>' +
+        rows.slice(0, cap).map(function (r) {
           return '<tr class="clickable" data-pan="' + esc(r.pan) + '"><td><input type="checkbox" class="bsel" data-p="' + esc(r.pan) + '"' + (S.bookSel[r.pan] ? ' checked' : '') + '></td>' +
-            '<td><b>' + esc(r.customer) + '</b><div class="faint" style="font-size:11px">' + esc(r.pan) + (r.exposure === 'Yes' ? ' · <span style="color:var(--red)">Exposure</span>' : '') + '</div></td>' +
-            '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.brands) + '">' + esc(r.brands) + '</td><td>' + esc(r.bizModel) + '</td>' +
+            '<td><b>' + esc(r.customer) + '</b><div class="faint small">' + esc(r.pan) + (r.exposure === 'Yes' ? ' · <span style="color:var(--red)">Exposure</span>' : '') + (r.bizModel ? ' · ' + esc(r.bizModel) : '') + '</div></td>' +
+            (multi() ? '<td>' + esc(r.owner) + '</td>' : '') +
+            '<td class="ellipsis" style="max-width:170px" title="' + esc(r.brands) + '">' + esc(r.brands) + '</td>' +
             '<td class="r num">' + inr(r.b0) + '</td><td class="r num">' + inr(r.b1 + r.b2) + '</td><td class="r num">' + inr(r.b3 + r.b4 + r.b5) + '</td><td class="r num">' + inr(r.b6) + '</td>' +
-            '<td class="r num"><b>' + inr(r.overdue) + '</b></td><td class="r num">' + inr(r.netPayable) + '</td><td class="r num">' + inr(r.possibleArAp) + '</td>' +
-            '<td>' + dots(r.recent) + '</td><td>' + (r.ptpBroken ? '<span class="pill red">PTP broken</span> ' : '') + (r.ptpNext ? '<span class="pill blue">PTP ' + fds(r.ptpNext) + '</span> ' : '') +
-            (r.today ? '<span class="pill green">✓ ' + esc(r.today) + '</span>' : r.daysSince === null ? '<span class="pill">never</span>' : r.daysSince >= 3 ? '<span class="pill amber">' + r.daysSince + 'd</span>' : '') + '</td>' +
-            '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.remarks) + '">' + esc(r.remarks) + '</td></tr>';
-        }).join('') + '</tbody></table>' + (rows.length > 600 ? '<div class="empty">Showing first 600 – refine the search</div>' : '') + '</div>';
+            '<td class="r num"><b>' + inr(r.overdue) + '</b></td><td class="r num">' + inr(r.possibleArAp) + '</td>' +
+            '<td>' + dots(r.recent) + (r.today ? '' : r.stale ? ' <span class="pill amber">' + (r.daysSince === null ? 'none' : r.daysSince + 'd') + '</span>' : '') + '</td>' +
+            '<td>' + (r.ptpBroken ? '<span class="pill red">broken</span> ' : '') + (r.ptpNext ? '<span class="pill blue">' + fds(r.ptpNext) + '</span>' : '') + '</td>' +
+            '<td>' + ioPill(r) + '</td><td>' + confPill(r.confidence) + '</td>' +
+            '<td class="ellipsis" style="max-width:240px" title="' + esc(r.remarks) + '">' + esc(r.remarks) + '</td></tr>';
+        }).join('') + '</tbody></table>' + (rows.length > cap ? '<div class="empty">Showing first ' + cap + ' – refine the search</div>' : '') + '</div>';
     } else {
-      h += rows.length ? '<div class="list">' + rows.slice(0, 250).map(function (r) { return panItem(r, true); }).join('') + '</div>' +
-        (rows.length > 250 ? '<div class="empty">Showing first 250 – refine the search</div>' : '') : '<div class="list"><div class="empty">No PANs match</div></div>';
+      h += rows.length ? '<div class="list">' + rows.slice(0, cap).map(function (r) { return panItem(r, true); }).join('') + '</div>' +
+        (rows.length > cap ? '<div class="empty">Showing first ' + cap + ' – refine the search</div>' : '') : '<div class="list"><div class="empty">No PANs match</div></div>';
     }
     h += '<div class="legend"><span><i class="dot d-yes"></i>Yes</span><span><i class="dot d-ptp"></i>PTP</span><span><i class="dot d-exp"></i>Expected pmt</span><span><i class="dot d-nd"></i>Not due</span><span><i class="dot d-no"></i>No</span><span><i class="dot d-leave"></i>Leave/Holiday</span></div>';
     if (nSel) {
-      h += '<div class="selbar"><b>' + nSel + ' selected</b><span style="flex:1"></span>' + S.init.dailyValues.map(function (v) {
+      h += '<div class="selbar"><b>' + nSel + ' selected</b><span class="grow"></span>' + S.init.dailyValues.map(function (v) {
         return '<button class="btn sm" data-bulk="' + esc(v) + '">' + esc(v) + '</button>';
-      }).join('') + '<button class="btn sm" id="bClear">✕</button></div>';
+      }).join('') + (isLead() ? '<button class="btn sm" id="bReassign">🔀 Reassign</button>' : '') + '<button class="btn sm" id="bClear">✕</button></div>';
     }
     $('panResults').innerHTML = h;
-    bindPanClicks();
-    $('showZero').onchange = function () { S.showAllRows = this.checked; renderPans(); };
-    Array.prototype.forEach.call(document.querySelectorAll('.bsel'), function (c) {
-      c.onclick = function (e) { e.stopPropagation(); S.bookSel[c.getAttribute('data-p')] = c.checked; renderPanResults(); };
+    bindPanClicks('#panResults');
+    var sz = $('showZero'); if (sz) sz.onchange = function () { S.showZero = this.checked; renderPans(); };
+    on('.bsel', 'click', function (e, c) { e.stopPropagation(); S.bookSel[c.getAttribute('data-p')] = c.checked; renderPanResults(); });
+    var ba = $('bAll');
+    if (ba) ba.onclick = function () { rows.slice(0, cap).forEach(function (r) { S.bookSel[r.pan] = ba.checked; }); renderPanResults(); };
+    on('[data-bulk]', 'click', function (e, b) {
+      var pans = Object.keys(S.bookSel).filter(function (k) { return S.bookSel[k]; });
+      var v = b.getAttribute('data-bulk');
+      call('wbBulkDaily', pans, v).then(function (r) {
+        toast(r.count + ' PANs marked "' + v + '" for today');
+        S.book.rows.forEach(function (x) { if (S.bookSel[x.pan]) { x.today = v; x.recent[0] = v; } });
+        S.bookSel = {}; renderPanResults();
+      }).catch(fail);
     });
-    var all = $('bAll');
-    if (all) all.onclick = function () { rows.forEach(function (r) { S.bookSel[r.pan] = all.checked; }); renderPanResults(); };
-    Array.prototype.forEach.call(document.querySelectorAll('[data-bulk]'), function (b) {
-      b.onclick = function () {
-        var pans = Object.keys(S.bookSel).filter(function (k) { return S.bookSel[k]; });
-        var v = b.getAttribute('data-bulk');
-        call('wbBulkDaily', S.me, pans, v).then(function (r) {
-          toast(r.count + ' PANs marked "' + v + '" for today');
-          S.book.rows.forEach(function (x) { if (S.bookSel[x.pan]) { x.today = v; x.recent[0] = v; } });
-          S.bookSel = {}; renderPanResults();
-        }).catch(fail);
-      };
-    });
+    var br = $('bReassign'); if (br) br.onclick = function () { reassignForm(Object.keys(S.bookSel).filter(function (k) { return S.bookSel[k]; })); };
     var bc = $('bClear'); if (bc) bc.onclick = function () { S.bookSel = {}; renderPanResults(); };
   }
 
   // ---------- PAN DETAIL ----------
   function openPan(pan) {
-    S.pan = pan; S.sel = {}; setTabs();
-    loading('Opening ' + pan + ' · pulling invoices…');
-    call('wbGetPan', S.me, pan).then(function (d) {
+    S.pan = pan; S.sel = {}; S.invFilter = 'all'; setTabs();
+    closeModal();
+    var known = S.book && S.book.rows.filter(function (r) { return r.pan === pan; })[0];
+    loading('Opening ' + (known ? known.customer + ' (' + pan + ')' : pan) + '…');
+    call('wbGetPan', pan).then(function (d) {
       if (S.pan !== pan) return;
       S.panData = d; renderPan();
-    }).catch(fail);
+    }).catch(function (e) { fail(e); S.pan = null; go(S.tab); });
   }
   function selInvoices() { return S.panData.invoices.filter(function (i) { return S.sel[i.inv]; }); }
+  var INV_FILTERS = [
+    ['all', 'All', function () { return true; }],
+    ['overdue', 'Overdue', function (i) { return i.overdue; }],
+    ['notdue', 'Not due', function (i) { return !i.overdue; }],
+    ['ptp', 'With PTP', function (i) { return !!i.ptpDate; }],
+    ['noptp', 'No PTP', function (i) { return !i.ptpDate && i.overdue; }],
+    ['tag', 'Tagged', function (i) { return !!i.tag; }]
+  ];
   function renderPan() {
     var d = S.panData, h = d.header || {}, t = today();
     var inv = d.invoices.slice();
     var k = S.invSort.k, dir = S.invSort.d;
     inv.sort(function (a, b) { var x = a[k], y = b[k]; if (x === y) return 0; return (x > y ? 1 : -1) * dir; });
+    var f = INV_FILTERS.filter(function (x) { return x[0] === S.invFilter; })[0] || INV_FILTERS[0];
+    var shown = inv.filter(f[2]);
     var sel = selInvoices();
-    var selAmt = sel.reduce(function (s, i) { return s + i.net; }, 0);
-    var openAmt = inv.reduce(function (s, i) { return s + i.net; }, 0);
-    var overdueAmt = inv.filter(function (i) { return i.overdue; }).reduce(function (s, i) { return s + i.net; }, 0);
-    var mine = d.owner === S.me;
-    var out = '<button class="back" id="back">← Back to ' + ({ today: 'Today', pans: 'My PANs', ptps: 'PTPs', stats: 'Productivity' }[S.tab]) + '</button>';
+    var openAmt = sum(inv, 'net');
+    var od = inv.filter(function (i) { return i.overdue; });
+    var overdueAmt = sum(od, 'net');
+    var noPtp = od.filter(function (i) { return !i.ptpDate; });
+    var mine = !S.init.me || d.owner === S.init.me;
+    var backTo = { today: 'Today', pans: 'PANs', ptps: 'PTPs', io: 'IO', stats: 'Stats', team: 'Team', overview: 'Overview' }[S.tab] || 'back';
+    var out = '<button class="back" id="back">← ' + esc(backTo) + '</button>';
     out += '<div class="detail-grid"><div>';
-    // Header card
-    out += '<div class="card"><div class="title">' + esc(d.customer || d.pan) + '</div><div class="muted" style="margin-bottom:6px">' + esc(d.pan) +
-      (d.owner && !mine ? ' · <span class="pill amber">Owned by ' + esc(d.owner) + '</span>' : '') + '</div>';
-    out += '<div class="tags" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">' +
-      (h.exposure === 'Yes' ? '<span class="pill red">Exposure / defaulting</span>' : '') +
-      (h.arApHist === 'Yes' ? '<span class="pill purple">AR-AP done before</span>' : '') +
-      (h.poe === 'Yes' ? '<span class="pill amber">POE required</span>' : '') +
-      (h.bizModel ? '<span class="pill">' + esc(h.bizModel) + '</span>' : '') +
-      (h.ioIncentive ? '<span class="pill green">IO: ' + esc(h.ioIncentive) + '</span>' : '') + '</div>';
-    out += '<div class="grid" style="margin-bottom:8px">' +
-      kpi('Overdue', inr(h.overdue != null ? h.overdue : overdueAmt), inv.filter(function (i) { return i.overdue; }).length + ' invoices') +
-      kpi('Total receivable', inr(h.total != null ? h.total : openAmt), inv.length + ' open invoices') +
-      kpi('Net payable (AP)', inr(h.netPayable || 0), 'we owe them') +
-      kpi('Possible AR-AP', inr(h.possibleArAp || 0), '>60: ' + inr(h.possibleArAp60 || 0)) + '</div>';
-    if (d.header) out += ageBar(h);
-    out += '</div>';
-    // Info
-    out += '<div class="card"><h3>Quick actions</h3><div class="actions">' +
-      '<button class="btn primary" id="aLog">📞 Log follow-up</button>' +
-      '<button class="btn" id="aPtp">🤝 Mark PTP</button>' +
-      '<button class="btn" id="aMail">✉️ Reminder e-mail</button>' +
-      '<button class="btn" id="aTag">🏷️ Tag invoices</button>' +
-      '<button class="btn" id="aSheet" title="Jump to this PAN in the tracker tab">↗ Go to row</button></div></div>';
-    out += '<div class="card"><h3>Relationship <span class="faint" style="text-transform:none;letter-spacing:0">tap a line to expand</span></h3><div class="kv">' +
-      kv('Brands', h.brands) + kv('KAMs', h.kams) + kv('KAM managers', h.kamMgr) + kv('BU head', h.buHead) +
-      kv('Category heads', [h.cat1, h.cat2].filter(Boolean).join(' / ')) + kv('BizFin SPOC', h.bizfin) + kv('Due months', h.months) + '</div></div>';
-    // Remarks + follow-up strip
-    out += '<div class="card"><h3>Remarks <button class="btn sm" id="editRemark">Edit</button></h3>' +
-      '<div id="remarkText">' + (h.remarks ? esc(h.remarks) : '<span class="faint">No remark yet</span>') + '</div>' +
-      (h.tlRemarks ? '<div style="margin-top:8px;padding:6px 8px;background:var(--amber-soft);border-radius:6px"><b style="font-size:11px;color:var(--amber)">TEAM LEAD</b><div>' + esc(h.tlRemarks) + '</div></div>' : '') +
-      (h.recentDates ? '<div style="margin-top:10px"><div class="faint" style="font-size:11px;margin-bottom:3px">Follow-up log · last 14 days</div><div style="display:flex;gap:3px;flex-wrap:wrap">' +
-        h.recentDates.slice().reverse().map(function (dk) {
-          var v = (h.daily || {})[dk] || '';
-          return '<div title="' + fd(dk) + ': ' + esc(v || 'blank') + '" style="text-align:center;font-size:9px;color:var(--faint)"><i class="dot ' + dc(v) + '" style="display:block;width:14px;height:14px;margin:0 auto 1px"></i>' + dk.slice(8) + '</div>';
-        }).join('') + '</div></div>' : '') + '</div>';
-    out += '</div><div>';
+    // Hero
+    var flags = [];
+    if (h.exposure === 'Yes') flags.push('<span class="pill red">Exposure / defaulting</span>');
+    if (h.arApHist === 'Yes') flags.push('<span class="pill purple">AR-AP done before</span>');
+    if (h.poe === 'Yes') flags.push('<span class="pill amber">POE required</span>');
+    if (d.io) flags.push(d.io.done ? '<span class="pill green">IO signed ✓</span>' : '<span class="pill amber">IO pending' + (d.io.rate ? ' · ₹' + d.io.rate : '') + '</span>');
+    if (h.confidence) flags.push(confPill(h.confidence));
+    if (h.ptpBroken) flags.push('<span class="pill red">' + h.ptpBroken + ' PTP broken</span>');
+    else if (h.ptpDueToday) flags.push('<span class="pill amber">PTP due today</span>');
+    else if (h.ptpNext) flags.push('<span class="pill">PTP ' + fds(h.ptpNext) + '</span>');
+    if (h.today) flags.push('<span class="pill green">Today: ' + esc(h.today) + '</span>');
+    else if (h.stale) flags.push('<span class="pill amber">' + (h.lastTouch ? 'Last f/u ' + fds(h.lastTouch) : 'No follow-up yet') + '</span>');
+    out += '<div class="hero"><div class="title">' + esc(d.customer || d.pan) + '</div>' +
+      '<div class="sub"><span>' + esc(d.pan) + '</span><button class="copy-mini" id="copyPan" title="Copy PAN">⧉</button>' +
+      (d.owner ? '<span>· ' + esc(d.owner) + (mine ? '' : ' (owner)') + '</span>' : '<span class="pill red">Unassigned</span>') +
+      (h.bizModel ? '<span>· ' + esc(/vendor does not exist/i.test(h.bizModel) ? 'no payables record' : h.bizModel) + '</span>' : '') + '</div>' +
+      (flags.length ? '<div class="tags" style="margin-top:7px">' + flags.join('') + '</div>' : '') +
+      '<div class="k4">' +
+      hk('Overdue', inr(h.overdue != null ? h.overdue : overdueAmt), od.length + ' invoice' + (od.length === 1 ? '' : 's')) +
+      hk('>60 days', inr(h.gt60 || 0), noPtp.length + ' overdue without PTP') +
+      hk('Total open', inr(h.total != null ? h.total : openAmt), inv.length + ' open invoices') +
+      hk('Possible AR-AP', inr(h.possibleArAp || 0), 'net payable ' + inr(h.netPayable || (d.payables || {}).net || 0)) +
+      '</div>' + (d.header ? ageBar(h) : '') + '</div>';
+    if (d.owners && d.owners.length > 1) out += '<div class="banner">⚠️ This PAN is on ' + d.owners.length + ' tabs: ' + esc(d.owners.join(', ')) + '. It is counted twice in the Summary.</div>';
+    // Action bar
+    out += '<div class="actionbar">' +
+      '<button class="abtn primary" id="aCopy"><span class="i">📋</span>Copy for mail</button>' +
+      '<button class="abtn" id="aPtp"><span class="i">🤝</span>PTP</button>' +
+      '<button class="abtn" id="aLog"><span class="i">📞</span>Log</button>' +
+      '<button class="abtn" id="aIo"><span class="i">✍️</span>IO</button>' +
+      '<div style="position:relative"><button class="abtn" id="aMore" style="width:100%;padding-left:10px;padding-right:10px"><span class="i">⋯</span>More</button><div class="menu hidden" id="moreMenu">' +
+      '<button id="mMail">✉️ Gmail draft</button><button id="mTag">🏷️ Tag invoices</button><button id="mConf">🚦 Confidence & POE</button>' +
+      '<button id="mRemark">💬 Edit remark</button>' + (d.canTl ? '<button id="mTl">🧑‍💼 Team lead remark</button><button id="mReassign">🔀 Reassign PAN</button>' : '') +
+      '<button id="mRow">↗ Go to row in sheet</button></div></div></div>';
+    var secs = panSections(d, h);
+    if (MODE === 'full') out += secs + '</div><div>';
     // Invoices
     out += '<div class="section-title" style="margin-top:0"><span>Open invoices (' + inv.length + ') · <span class="num">' + inr(openAmt, true) + '</span></span>' +
-      '<span class="actions"><button class="btn sm" id="sOver">Select overdue</button><button class="btn sm" id="sNone">Clear</button></span></div>';
+      '<span class="actions"><button class="btn sm" id="sOver">Select overdue</button><button class="btn sm" id="sAll">All</button><button class="btn sm" id="sNone">None</button></span></div>';
+    if (inv.length) {
+      out += '<div class="bulkptp"><b>🤝 One PTP date for</b><select id="bpScope">' +
+        '<option value="noptp"' + (noPtp.length ? ' selected' : '') + '>overdue without PTP (' + noPtp.length + ')</option>' +
+        '<option value="overdue"' + (noPtp.length ? '' : ' selected') + '>all overdue (' + od.length + ')</option>' +
+        '<option value="all">all open (' + inv.length + ')</option>' +
+        '<option value="sel">selected (' + sel.length + ')</option></select>' +
+        '<input type="date" id="bpDate" min="' + t + '" value="' + nextWorkday(t) + '"><button class="btn sm primary" id="bpApply">Apply</button></div>';
+      out += '<div class="chips">' + INV_FILTERS.map(function (x) {
+        var n = inv.filter(x[2]).length;
+        if (!n && x[0] !== 'all' && x[0] !== S.invFilter) return '';
+        return '<button class="chip' + (S.invFilter === x[0] ? ' on' : '') + '" data-if="' + x[0] + '">' + x[1] + '<span class="n">' + n + '</span></button>';
+      }).join('') + '</div>';
+    }
     if (!inv.length) out += '<div class="list"><div class="empty">No open invoices for this PAN in Imported_Data</div></div>';
     else if (MODE === 'full') {
       var th = function (key, label, r) { return '<th class="' + (r ? 'r' : '') + '" data-sort="' + key + '">' + label + (S.invSort.k === key ? (S.invSort.d > 0 ? ' ▲' : ' ▼') : '') + '</th>'; };
-      out += '<div class="table-wrap" style="max-height:calc(100vh - 330px)"><table><thead><tr><th><input type="checkbox" id="iAll"></th>' +
+      // Money columns that are zero on every invoice of this PAN are left out, so PTP / status stay in view.
+      var has = { tds: inv.some(function (i) { return i.tds; }), receipt: inv.some(function (i) { return i.receipt; }), arap: inv.some(function (i) { return i.arap; }) };
+      var opt = function (k, html) { return has[k] ? html : ''; };
+      var lead = 7 + (has.tds ? 1 : 0) + (has.receipt ? 1 : 0) + (has.arap ? 1 : 0);
+      out += '<div class="table-wrap" style="max-height:calc(100vh - 290px)"><table><thead><tr><th><input type="checkbox" id="iAll"></th>' +
         th('inv', 'Invoice') + th('invDate', 'Inv date') + th('dueDate', 'Due date') + th('brand', 'Brand') + th('month', 'Activity month') +
-        th('ageing', 'Days', 1) + th('bucket', 'Bucket') + th('tds', 'TDS', 1) + th('receipt', 'Received', 1) + th('net', 'Outstanding', 1) +
-        th('ptpDate', 'PTP') + th('ptpStatus', 'Status') + th('tag', 'Tag') + '</tr></thead><tbody>' +
-        inv.map(function (i) {
+        th('ageing', 'Days', 1) + th('bucket', 'Bucket') + opt('tds', th('tds', 'TDS', 1)) + opt('receipt', th('receipt', 'Received', 1)) + opt('arap', th('arap', 'AR-AP', 1)) + th('net', 'Outstanding', 1) +
+        th('ptpDate', 'PTP date') + th('ptpStatus', 'Status') + th('tag', 'Tag') + '</tr></thead><tbody>' +
+        shown.map(function (i) {
           return '<tr class="' + (S.sel[i.inv] ? 'sel' : '') + '"><td><input type="checkbox" class="isel" data-i="' + esc(i.inv) + '"' + (S.sel[i.inv] ? ' checked' : '') + '></td>' +
             '<td><b>' + esc(i.inv) + '</b></td><td>' + fd(i.invDate) + '</td><td>' + fd(i.dueDate) + '</td><td>' + esc(i.brand) + '</td><td>' + esc(i.month) + '</td>' +
             '<td class="r num">' + (i.ageing || 0) + '</td><td><span class="pill ' + bucketCls(i.bucket) + '">' + esc(i.bucket.replace(/^[a-g]\./, '')) + '</span></td>' +
-            '<td class="r num">' + inr(i.tds) + '</td><td class="r num">' + inr(i.receipt) + '</td><td class="r num"><b>' + inr(i.net, true) + '</b></td>' +
-            '<td>' + (i.ptpDate ? fd(i.ptpDate) + (i.ptpAmount !== '' && i.ptpAmount !== i.net ? '<div class="faint" style="font-size:11px">' + inr(i.ptpAmount) + '</div>' : '') : '') + '</td>' +
-            '<td>' + statusPill(i.ptpStatus && i.ptpStatus !== 'PTP Pending' ? i.ptpStatus : (i.bucket === 'a.Not Due' ? 'Not due' : '')) + '</td><td>' + tagPill(i.tag) + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
+            opt('tds', '<td class="r num">' + inr(i.tds) + '</td>') + opt('receipt', '<td class="r num">' + inr(i.receipt) + '</td>') + opt('arap', '<td class="r num">' + inr(i.arap) + '</td>') +
+            '<td class="r num"><b>' + inr(i.net, true) + '</b></td>' +
+            '<td>' + ptpInput(i) + (i.ptpAmount !== '' && Number(i.ptpAmount) !== i.net ? '<div class="faint small">' + inr(i.ptpAmount) + '</div>' : '') + '</td>' +
+            '<td>' + statusPill(i.ptpStatus && i.ptpStatus !== 'PTP Pending' ? i.ptpStatus : (i.overdue ? '' : 'Not due')) + '</td><td>' + tagPill(i.tag) + '</td></tr>';
+        }).join('') + '<tr class="tot"><td></td><td colspan="' + lead + '">Total ' + (shown.length !== inv.length ? '(' + shown.length + ' shown)' : '') + '</td><td class="r num">' + inr(sum(shown, 'net'), true) + '</td><td colspan="3"></td></tr></tbody></table></div>';
     } else {
-      out += '<div class="list">' + inv.map(function (i) {
-        return '<label class="inv' + (S.sel[i.inv] ? ' sel' : '') + '"><input type="checkbox" class="isel" data-i="' + esc(i.inv) + '"' + (S.sel[i.inv] ? ' checked' : '') + '>' +
-          '<div class="main"><div class="two"><b>' + esc(i.inv) + '</b><b class="num">' + inr(i.net, true) + '</b></div>' +
-          '<div class="two sub muted" style="font-size:11px"><span>Inv ' + fds(i.invDate) + ' · due ' + fd(i.dueDate) + '</span><span>' + (i.ageing || 0) + 'd</span></div>' +
-          '<div class="tags" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px"><span class="pill ' + bucketCls(i.bucket) + '">' + esc(i.bucket.replace(/^[a-g]\./, '')) + '</span>' +
-          (i.brand ? '<span class="pill">' + esc(i.brand) + '</span>' : '') +
-          (i.ptpDate ? '<span class="pill blue">PTP ' + fds(i.ptpDate) + '</span>' : '') +
-          (i.ptpStatus && i.ptpStatus !== 'PTP Pending' && i.ptpStatus !== 'PTP Given' ? statusPill(i.ptpStatus) : '') + tagPill(i.tag) + '</div></div></label>';
+      out += '<div class="list">' + shown.map(function (i) {
+        return '<div class="inv' + (S.sel[i.inv] ? ' sel' : '') + '"><input type="checkbox" class="isel" data-i="' + esc(i.inv) + '"' + (S.sel[i.inv] ? ' checked' : '') + '>' +
+          '<div class="main"><div class="between"><b>' + esc(i.inv) + '</b><b class="num">' + inr(i.net, true) + '</b></div>' +
+          '<div class="between muted small"><span>' + fds(i.invDate) + ' → due ' + fd(i.dueDate) + '</span><span>' + (i.ageing || 0) + 'd</span></div>' +
+          '<div class="tags" style="margin-top:3px"><span class="pill ' + bucketCls(i.bucket) + '">' + esc(i.bucket.replace(/^[a-g]\./, '')) + '</span>' +
+          (i.brand ? '<span class="pill">' + esc(i.brand) + '</span>' : '') + tagPill(i.tag) + '</div>' +
+          '<div class="ptp-row"><span class="small muted">PTP</span>' + ptpInput(i) +
+          (i.ptpStatus && i.ptpStatus !== 'PTP Pending' && i.ptpStatus !== 'PTP Given' ? statusPill(i.ptpStatus) : '') + '</div></div></div>';
       }).join('') + '</div>';
     }
     if (sel.length) {
-      out += '<div class="selbar"><b>' + sel.length + ' selected · <span class="num">' + inr(selAmt, true) + '</span></b><span style="flex:1"></span>' +
-        '<button class="btn sm primary" id="bPtp">🤝 PTP</button><button class="btn sm" id="bTag">🏷️ Tag</button>' +
-        '<button class="btn sm" id="bMail">✉️ Mail</button><button class="btn sm" id="bClearPtp">Clear PTP</button></div>';
+      out += '<div class="selbar"><b>' + sel.length + ' · <span class="num">' + inr(sum(sel, 'net'), true) + '</span></b><span class="grow"></span>' +
+        '<button class="btn sm primary" id="bPtp">🤝 PTP</button><button class="btn sm" id="bCopy">📋 Copy</button><button class="btn sm" id="bTag">🏷️ Tag</button>' +
+        '<button class="btn sm" id="bClearPtp">Clear PTP</button></div>';
     }
-    // Paid + history
-    out += '<details style="margin-top:12px"><summary>Recently settled invoices (' + d.paid.length + ')</summary><div class="list" style="margin-top:6px">' +
-      (d.paid.length ? d.paid.map(function (p) {
-        return '<div class="inv"><div class="main"><div class="two"><b>' + esc(p.inv) + '</b><span class="num">' + inr(p.receipt, true) + '</span></div>' +
-          '<div class="sub muted" style="font-size:11px">Inv ' + fd(p.invDate) + ' · due ' + fd(p.dueDate) + (p.receiptDate ? ' · received ' + fd(p.receiptDate) : '') +
-          (p.arap ? ' · AR-AP ' + inr(p.arap) : '') + (p.tds ? ' · TDS ' + inr(p.tds) : '') + '</div></div></div>';
-      }).join('') : '<div class="empty">None found</div>') + '</div></details>';
-    out += '<div class="section-title">Activity history (' + d.history.length + ')</div><div class="card"><div class="timeline">' +
-      (d.history.length ? d.history.map(function (l) {
-        return '<div class="tl ' + esc(l.type) + '"><div class="h">' + fd(l.date) + ' · <b>' + esc(l.type) + '</b> · ' + esc(l.assoc) + '</div>' +
-          '<div>' + esc(l.outcome) + (l.amount ? ' · <span class="num">' + inr(l.amount) + '</span>' : '') + (l.next ? ' · next ' + fd(l.next) : '') + '</div>' +
-          (l.remarks ? '<div class="muted">' + esc(l.remarks) + '</div>' : '') +
-          (l.invoices ? '<div class="faint" style="font-size:11px;overflow-wrap:anywhere">' + esc(l.invoices) + '</div>' : '') + '</div>';
-      }).join('') : '<div class="faint">No activity logged through the workbench yet.</div>') + '</div></div>';
+    if (MODE !== 'full') out += '<div style="height:10px"></div>' + secs;
     out += '</div></div>';
     $('view').innerHTML = out;
     window.scrollTo(0, 0);
-    // bindings
+    bindPan(inv, shown, od, noPtp);
+  }
+  function hk(l, v, s) { return '<div class="k"><div class="l">' + esc(l) + '</div><div class="v num">' + v + '</div><div class="s">' + esc(s) + '</div></div>'; }
+  function ptpInput(i) {
+    var cls = i.ptpDate ? (i.ptpDate < today() ? 'late' : 'set') : '';
+    return '<input type="date" class="ptp-in ' + cls + '" data-i="' + esc(i.inv) + '" value="' + esc(i.ptpDate) + '" title="PTP date for ' + esc(i.inv) + ' – saves as soon as you pick a date">';
+  }
+  function sec(id, title, hint, body) {
+    var open = S.openSec[id] !== undefined ? S.openSec[id] : MODE === 'full' && /^(rel|pay|io|rem)$/.test(id);
+    return '<details class="sec" data-sec="' + id + '"' + (open ? ' open' : '') + '><summary>' + title + '<span class="hint">' + hint + '</span></summary><div class="body">' + body + '</div></details>';
+  }
+  function kv(k, v, raw) {
+    if (!v && v !== 0) return '';
+    var long = String(v).replace(/<[^>]+>/g, '').length > 110;
+    return '<div>' + esc(k) + '</div><div' + (long ? ' class="clamp" title="Tap to show all"' : '') + '>' + (raw ? v : esc(v)) + '</div>';
+  }
+  function kamMail(name) {
+    var dom = S.init.kamDomain;
+    if (!dom || !/^[A-Za-z]+\.[A-Za-z.]+$/.test(name)) return esc(name);
+    return '<a href="mailto:' + esc(name.toLowerCase() + '@' + dom) + '">' + esc(name) + '</a>';
+  }
+  function panSections(d, h) {
+    var out = '';
+    var io = d.io, p = d.payables || {};
+    // Contacts
+    out += sec('rel', '👥 Contacts & relationship', esc([d.kams.slice(0, 2).join(', '), h.bizfin].filter(Boolean).join(' · ')),
+      '<div class="kv">' + kv('Brands', h.brands) + kv('KAMs', d.kams.map(kamMail).join(', ') || h.kams, true) +
+      kv('KAM managers', d.kamMgrs.join(', ') || h.kamMgr) + kv('BU head', h.buHead) + kv('Category head 1', h.cat1) + kv('Category head 2', h.cat2) +
+      kv('BizFin SPOC', h.bizfin) + kv('Due activity months', h.months) + kv('Owner', d.owner) +
+      (d.consolidatedOwner && d.consolidatedOwner !== d.owner ? kv('Consolidated says', d.consolidatedOwner + ' ⚠️') : '') + '</div>');
+    // Payables & AR-AP
+    out += sec('pay', '💰 Payables & AR-AP', 'net payable ' + inr(h.netPayable || p.net || 0) + (h.possibleArAp ? ' · AR-AP ' + inr(h.possibleArAp) : ''),
+      '<div class="kv">' + kv('Net payable (we owe)', inr(h.netPayable || p.net || 0, true)) + kv('Business model', h.bizModel || p.model) +
+      kv('Possible AR-AP (overdue)', inr(h.possibleArAp || 0, true)) + kv('Possible AR-AP >60', inr(h.possibleArAp60 || 0, true)) +
+      kv('AR-AP done before', h.arApHist) + kv('Payables name', p.name) + '</div>' +
+      (p.vendors && p.vendors.length ? '<div class="table-wrap" style="margin-top:8px;max-height:240px"><table><thead><tr><th>Vendor code</th><th>Vendor</th><th>Model</th><th class="r">Payable</th><th class="r">Inventory</th></tr></thead><tbody>' +
+        p.vendors.map(function (v) { return '<tr><td>' + esc(v.code) + '</td><td class="ellipsis" style="max-width:160px" title="' + esc(v.name) + '">' + esc(v.name) + '</td><td>' + esc(v.model) + '</td><td class="r num">' + inr(v.payable) + '</td><td class="r num">' + inr(v.inventory) + '</td></tr>'; }).join('') +
+        '<tr class="tot"><td colspan="3">' + p.vendors.length + ' vendor code(s)</td><td class="r num">' + inr(sum(p.vendors, 'payable')) + '</td><td class="r num">' + inr(sum(p.vendors, 'inventory')) + '</td></tr></tbody></table></div>'
+        : '<div class="faint small" style="margin-top:6px">' + (p.found ? 'No vendor-level rows in Payables.' : 'PAN not found in Payable Data - Daily.') + '</div>'));
+    // IO
+    out += sec('io', '✍️ IO sign-off', io ? (io.done ? '✓ signed' + (io.signedOn ? ' ' + fds(io.signedOn) : '') : 'pending · ₹' + (io.rate || 0)) : 'not on rate card',
+      io ? '<div class="kv">' + kv('Status', io.done ? '<span class="pill green">Signed</span>' : '<span class="pill amber">Pending</span>', true) +
+        kv('Incentive', io.rate ? '₹' + io.rate : 'NA') + kv('Billing band', io.band) + kv('Avg invoicing 6M', io.avgInv ? inr(io.avgInv) : '') +
+        kv('AR-AP > 50%?', io.arap50) + kv('Associate', [io.prevAssoc, io.assoc].filter(Boolean).join(' → ')) +
+        kv('Sign-off link', io.link ? '<a href="' + esc(io.link) + '" target="_blank">Open signed IO ↗</a>' : '', true) +
+        kv('Signed brand PDF', io.pdf ? '<a href="' + esc(io.pdf) + '" target="_blank">Open PDF ↗</a>' : '', true) +
+        kv('Signed on', fd(io.signedOn)) + kv('Remarks', io.remarks) + kv('Updated', io.updatedBy) + '</div>' +
+        '<div class="actions" style="margin-top:8px"><button class="btn sm primary" data-act="io">✍️ Update IO sign-off</button></div>'
+        : '<div class="faint small">This PAN is not on the IO Sign Off Rate Card.</div><div class="actions" style="margin-top:8px"><button class="btn sm" data-act="io">✍️ Record an IO sign-off anyway</button></div>');
+    // Confidence
+    var rag = [['Red', h.red, '#ea4335'], ['Amber', h.yellow, '#fbbc04'], ['Green', h.green, '#34a853']];
+    var ragTot = rag.reduce(function (s, x) { return s + (Number(x[1]) || 0); }, 0);
+    out += sec('conf', '🚦 Collection confidence', (h.confidence ? (h.confidence === 'Yellow' ? 'Amber' : h.confidence) : 'not set') + (h.poe ? ' · POE ' + h.poe : ''),
+      (ragTot ? '<div class="bar">' + rag.map(function (x) { return x[1] ? '<div style="width:' + (x[1] / ragTot * 100) + '%;background:' + x[2] + '" title="' + x[0] + ' ' + inr(x[1]) + '"></div>' : ''; }).join('') + '</div>' : '') +
+      '<div class="kv">' + rag.map(function (x) { return kv(x[0], x[1] === '' || x[1] === undefined ? '–' : inr(x[1], true)); }).join('') + kv('POE required', h.poe || '–') + '</div>' +
+      '<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="conf">🚦 Set confidence / POE</button></div>');
+    // Remarks
+    out += sec('rem', '💬 Remarks', esc((h.remarks || 'none').slice(0, 60)),
+      '<div class="remark">' + (h.remarks ? esc(h.remarks) : '<span class="faint">No remark yet</span>') + '</div>' +
+      '<div class="actions" style="margin:6px 0 10px"><button class="btn sm" data-act="remark">Edit remark</button></div>' +
+      '<div class="small muted" style="font-weight:600;margin-bottom:3px">TEAM LEAD</div><div class="remark tl">' + (h.tlRemarks ? esc(h.tlRemarks) : '<span class="faint">No team lead remark</span>') + '</div>' +
+      (d.canTl ? '<div class="actions" style="margin-top:6px"><button class="btn sm" data-act="tl">Edit team lead remark</button></div>' : ''));
+    // Follow-up calendar
+    if (h.daily14) {
+      out += sec('cal', '📅 Follow-up calendar', h.lastTouch ? 'last ' + fds(h.lastTouch) + ' · ' + (h.mtdTouches || 0) + ' this month' : 'no follow-up in window',
+        '<div class="cal">' + h.daily14.map(function (x) { return '<div title="' + fd(x.date) + ': ' + esc(x.v || 'blank') + '"><i class="' + dc(x.v) + '"></i>' + x.date.slice(8) + '</div>'; }).join('') + '</div>' +
+        '<div class="legend"><span><i class="dot d-yes"></i>Yes</span><span><i class="dot d-ptp"></i>PTP</span><span><i class="dot d-exp"></i>Expected</span><span><i class="dot d-nd"></i>Not due</span><span><i class="dot d-no"></i>No</span><span><i class="dot d-leave"></i>Leave</span></div>' +
+        (h.nextFollowUp ? '<div class="small" style="margin-top:6px">Next follow-up planned: <b>' + fd(h.nextFollowUp) + '</b></div>' : ''));
+    }
+    // Settled
+    out += sec('paid', '✅ Recently settled', d.paid ? d.paid.length + ' invoice(s)' : 'tap to load', !d.paid ? '<div class="faint small" id="paidBody">Loading…</div>' :
+      d.paid.length ? '<div class="list">' + d.paid.map(function (p2) {
+      return '<div class="inv"><div class="main"><div class="between"><b>' + esc(p2.inv) + '</b><span class="num">' + inr(p2.receipt, true) + '</span></div>' +
+        '<div class="muted small">Inv ' + fd(p2.invDate) + ' · due ' + fd(p2.dueDate) + (p2.receiptDate ? ' · received ' + fd(p2.receiptDate) : '') +
+        (p2.arap ? ' · AR-AP ' + inr(p2.arap) : '') + (p2.tds ? ' · TDS ' + inr(p2.tds) : '') + '</div></div></div>';
+    }).join('') + '</div>' : '<div class="faint small">None found</div>');
+    // History
+    out += sec('hist', '🕘 Activity history', d.history.length ? d.history.length + ' · latest ' + fds(d.history[0].date) : 'none yet',
+      d.history.length ? '<div class="timeline">' + d.history.map(function (l) {
+        return '<div class="tl ' + esc(l.type) + '"><div class="h">' + fd(l.date) + ' · <b>' + esc(l.type) + '</b> · ' + esc(l.assoc) + (l.user ? ' · ' + esc(l.user.split('@')[0]) : '') + '</div>' +
+          '<div>' + esc(l.outcome) + (l.amount ? ' · <span class="num">' + inr(l.amount) + '</span>' : '') + (l.next ? ' · next ' + fd(l.next) : '') + '</div>' +
+          (l.remarks ? '<div class="muted">' + esc(l.remarks) + '</div>' : '') +
+          (l.invoices ? '<div class="faint small" style="overflow-wrap:anywhere">' + esc(l.invoices) + '</div>' : '') + '</div>';
+      }).join('') + '</div>' : '<div class="faint small">Nothing logged through the workbench yet.</div>');
+    return out;
+  }
+  function bindPan(inv, shown, od, noPtp) {
+    var d = S.panData;
     $('back').onclick = function () { S.pan = null; go(S.tab); };
-    Array.prototype.forEach.call(document.querySelectorAll('.isel'), function (c) {
-      c.onclick = function (e) { e.stopPropagation(); S.sel[c.getAttribute('data-i')] = c.checked; renderPanKeepScroll(); };
-    });
-    var ia = $('iAll'); if (ia) { ia.checked = sel.length && sel.length === inv.length; ia.onclick = function () { inv.forEach(function (i) { S.sel[i.inv] = ia.checked; }); renderPanKeepScroll(); }; }
-    Array.prototype.forEach.call(document.querySelectorAll('th[data-sort]'), function (th) {
-      th.onclick = function () { var key = th.getAttribute('data-sort'); S.invSort = { k: key, d: S.invSort.k === key ? -S.invSort.d : -1 }; renderPanKeepScroll(); };
-    });
-    $('sOver').onclick = function () { S.sel = {}; inv.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; }); renderPanKeepScroll(); };
+    $('copyPan').onclick = function () { copyRich(esc(d.pan), d.pan).then(function (ok) { toast(ok ? 'PAN copied' : 'Copy blocked – select it manually', !ok); }); };
+    on('.isel', 'click', function (e, c) { e.stopPropagation(); S.sel[c.getAttribute('data-i')] = c.checked; renderPanKeepScroll(); });
+    var ia = $('iAll'); if (ia) { ia.checked = shown.length && shown.every(function (i) { return S.sel[i.inv]; }); ia.onclick = function () { shown.forEach(function (i) { S.sel[i.inv] = ia.checked; }); renderPanKeepScroll(); }; }
+    on('th[data-sort]', 'click', function (e, th) { var key = th.getAttribute('data-sort'); S.invSort = { k: key, d: S.invSort.k === key ? -S.invSort.d : -1 }; renderPanKeepScroll(); });
+    on('[data-if]', 'click', function (e, c) { S.invFilter = c.getAttribute('data-if'); renderPanKeepScroll(); });
+    $('sOver').onclick = function () { S.sel = {}; od.forEach(function (i) { S.sel[i.inv] = true; }); renderPanKeepScroll(); };
+    $('sAll').onclick = function () { S.sel = {}; inv.forEach(function (i) { S.sel[i.inv] = true; }); renderPanKeepScroll(); };
     $('sNone').onclick = function () { S.sel = {}; renderPanKeepScroll(); };
-    $('aLog').onclick = followUpForm;
-    $('aPtp').onclick = function () { if (!selInvoices().length) inv.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; }); ptpForm(); };
-    $('aMail').onclick = mailForm;
-    $('aTag').onclick = function () { if (!selInvoices().length) return toast('Tick the invoices to tag first'); tagForm(); };
-    $('aSheet').onclick = function () {
-      call('wbGoToRow', d.owner || S.me, d.pan).then(function (ok) { toast(ok ? 'Row selected in the "' + (d.owner || S.me) + '" tab' : 'PAN not found in the tab'); }).catch(fail);
+    on('details.sec', 'toggle', function (e, el) {
+      var id = el.getAttribute('data-sec');
+      S.openSec[id] = el.open;
+      if (id === 'paid' && el.open && !d.paid && !d.paidLoading) {
+        d.paidLoading = true;
+        call('wbGetPaid', d.pan).then(function (r) { if (S.panData !== d) return; d.paid = r.paid; renderPanKeepScroll(); }).catch(fail);
+      }
+    });
+    var ps = document.querySelector('details.sec[data-sec="paid"]');
+    if (ps && ps.open && !d.paid && !d.paidLoading) { ps.open = false; ps.open = true; }
+    on('.kv .clamp', 'click', function (e, el) { if (!e.target.closest('a')) el.classList.toggle('open'); });
+    on('.ptp-in', 'change', function (e, el) { savePtpInline(el.getAttribute('data-i'), el.value, el); });
+    var bp = $('bpApply');
+    if (bp) bp.onclick = function () {
+      var scope = $('bpScope').value, date = $('bpDate').value;
+      if (!date) return toast('Pick a date', true);
+      var list = scope === 'noptp' ? noPtp : scope === 'overdue' ? od : scope === 'all' ? inv : selInvoices();
+      if (!list.length) return toast('No invoices in that group', true);
+      if (list.length > 1 && !confirm('Set PTP ' + fd(date) + ' on ' + list.length + ' invoice(s) · ' + inr(sum(list, 'net'), true) + '?')) return;
+      bp.disabled = true; bp.textContent = 'Saving…';
+      call('wbSavePtp', base({ invoices: list.map(function (i) { return i.inv; }), ptpDate: date, updateRemark: true }))
+        .then(function (r) { toast('PTP ' + fd(date) + ' saved on ' + r.count + ' invoice(s)'); S.book = S.ptps = null; openPan(d.pan); })
+        .catch(function (e) { bp.disabled = false; bp.textContent = 'Apply'; fail(e); });
     };
-    Array.prototype.forEach.call(document.querySelectorAll('.kv div:nth-child(even)'), function (x) { x.onclick = function () { x.classList.toggle('open'); }; });
-    $('editRemark').onclick = remarkForm;
+    $('aCopy').onclick = function () { mailForm('copy'); };
+    $('aPtp').onclick = function () { if (!selInvoices().length) (noPtp.length ? noPtp : od).forEach(function (i) { S.sel[i.inv] = true; }); ptpForm(); };
+    $('aLog').onclick = followUpForm;
+    $('aIo').onclick = function () { ioForm(); };
+    $('aMore').onclick = function (e) { e.stopPropagation(); $('moreMenu').classList.toggle('hidden'); };
+    $('mMail').onclick = function () { mailForm('draft'); };
+    $('mTag').onclick = function () { if (!selInvoices().length) return toast('Tick the invoices to tag first'); tagForm(); };
+    $('mConf').onclick = function () { confForm(); };
+    $('mRemark').onclick = function () { remarkForm('remarks'); };
+    if ($('mTl')) $('mTl').onclick = function () { remarkForm('tlRemarks'); };
+    if ($('mReassign')) $('mReassign').onclick = function () { reassignForm([d.pan]); };
+    $('mRow').onclick = function () { call('wbGoToRow', d.pan).then(function (r) { toast(r.ok ? 'Row ' + r.row + ' selected in "' + r.sheet + '"' : 'PAN not found on a tab'); }).catch(fail); };
+    on('[data-act]', 'click', function (e, b) {
+      var a = b.getAttribute('data-act');
+      if (a === 'io') ioForm(); else if (a === 'conf') confForm(); else if (a === 'remark') remarkForm('remarks'); else if (a === 'tl') remarkForm('tlRemarks');
+    });
     if ($('bPtp')) {
-      $('bPtp').onclick = ptpForm; $('bTag').onclick = tagForm; $('bMail').onclick = mailForm;
+      $('bPtp').onclick = ptpForm; $('bTag').onclick = tagForm; $('bCopy').onclick = function () { mailForm('copy', 'sel'); };
       $('bClearPtp').onclick = function () {
         if (!confirm('Clear the PTP on ' + selInvoices().length + ' invoice(s)?')) return;
         submit('wbTagInvoices', base({ invoices: selInvoices().map(function (i) { return i.inv; }), clearPtp: true }), 'PTP cleared');
       };
     }
   }
-  function renderPanKeepScroll() { var y = window.scrollY; var tw = document.querySelector('.table-wrap'); var ty = tw ? tw.scrollTop : 0; renderPan(); window.scrollTo(0, y); tw = document.querySelector('.table-wrap'); if (tw) tw.scrollTop = ty; }
+  function savePtpInline(invNo, date, el) {
+    var d = S.panData;
+    var i = d.invoices.filter(function (x) { return x.inv === invNo; })[0];
+    if (!i) return;
+    el.disabled = true;
+    var p = date
+      ? call('wbSavePtp', base({ invoices: [invNo], dates: (function () { var o = {}; o[invNo] = date; return o; })(), updateRemark: false }))
+      : call('wbTagInvoices', base({ invoices: [invNo], clearPtp: true }));
+    p.then(function () {
+      i.ptpDate = date; i.ptpAmount = date ? i.net : ''; i.ptpStatus = ptpLive(date, i.net); i.inTracker = true;
+      if (date && d.header && !/^(PTP|Holiday|Leave)$/.test(d.header.today)) d.header.today = 'PTP';
+      S.book = S.ptps = null;
+      toast(date ? 'PTP ' + fd(date) + ' saved · ' + invNo : 'PTP cleared · ' + invNo);
+      renderPanKeepScroll();
+    }).catch(function (e) { el.disabled = false; el.value = i.ptpDate; fail(e); });
+  }
+  function renderPanKeepScroll() {
+    var y = window.scrollY; var tw = document.querySelector('.table-wrap'); var ty = tw ? tw.scrollTop : 0;
+    renderPan(); window.scrollTo(0, y); tw = document.querySelector('.table-wrap'); if (tw) tw.scrollTop = ty;
+  }
   function bucketCls(b) { var i = BUCKET_OF[b]; return i === 0 ? '' : i <= 2 ? 'green' : i <= 4 ? 'amber' : 'red'; }
-  function kv(k, v) { return v ? '<div>' + esc(k) + '</div><div>' + esc(v) + '</div>' : ''; }
   function base(extra) {
-    var o = { assoc: S.panData.owner || S.me, pan: S.panData.pan, customer: S.panData.customer };
+    var o = { pan: S.panData.pan, customer: S.panData.customer };
     Object.keys(extra || {}).forEach(function (k) { o[k] = extra[k]; });
     return o;
   }
-  function submit(fn, payload, okMsg) {
+  function submit(fn, payload, okMsg, after) {
     var btn = document.querySelector('#modal .btn.primary'); if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
     return call(fn, payload).then(function (r) {
-      closeModal(); toast(okMsg + (r && r.count ? ' · ' + r.count + ' invoice(s)' : ''));
-      S.book = null; S.ptps = null; S.sel = {};
-      openPan(S.panData.pan);
+      closeModal(); toast(okMsg + (r && r.count ? ' · ' + r.count + (fn === 'wbSavePtp' || fn === 'wbTagInvoices' ? ' invoice(s)' : '') : ''));
+      S.book = null; S.ptps = null; S.io = null; S.sel = {};
+      if (after) after(r); else if (S.panData && S.pan) openPan(S.panData.pan);
       return r;
     }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = 'Save'; } fail(e); });
   }
 
-  // ---------- Forms ----------
-  function modal(html) {
-    $('modal').innerHTML = '<div class="overlay" id="ov"><div class="sheet">' + html + '</div></div>';
-    $('ov').onclick = function (e) { if (e.target.id === 'ov') closeModal(); };
-    Array.prototype.forEach.call(document.querySelectorAll('#modal [data-close]'), function (b) { b.onclick = closeModal; });
-    Array.prototype.forEach.call(document.querySelectorAll('#modal [data-date]'), function (b) {
-      b.onclick = function () { $(b.getAttribute('data-for')).value = b.getAttribute('data-date'); };
+  // ---------- Copy for mail / Gmail draft ----------
+  var MAIL_COLS = [
+    ['inv', 'Invoice No', 1, function (i) { return esc(i.inv); }],
+    ['invDate', 'Invoice Date', 1, function (i) { return fdm(i.invDate); }],
+    ['dueDate', 'Due Date', 1, function (i) { return fdm(i.dueDate); }],
+    ['brand', 'Brand', 1, function (i) { return esc(i.brand); }],
+    ['month', 'Activity Month', 0, function (i) { return esc(i.month); }],
+    ['ageing', 'Days Overdue', 1, function (i) { return i.overdue ? String(i.ageing || 0) : 'Not due'; }, 'r'],
+    ['tds', 'TDS', 0, function (i) { return money(i.tds); }, 'r'],
+    ['receipt', 'Received', 0, function (i) { return money(i.receipt); }, 'r'],
+    ['arap', 'AR-AP Adj.', 0, function (i) { return money(i.arap); }, 'r'],
+    ['net', 'Outstanding (₹)', 1, function (i) { return money(i.net); }, 'r', true],
+    ['ptpDate', 'Payment Commitment', 0, function (i) { return i.ptpDate ? fdm(i.ptpDate) : ''; }]
+  ];
+  function mailTable(list, cols) {
+    var th = 'background:#1f3864;color:#ffffff;text-align:left;padding:6px 9px;border:1px solid #1f3864;font-weight:bold;white-space:nowrap';
+    var td = 'padding:5px 9px;border:1px solid #d0d7de;white-space:nowrap';
+    var c = MAIL_COLS.filter(function (x) { return cols[x[0]]; });
+    var total = sum(list, 'net');
+    var rows = list.map(function (i, n) {
+      return '<tr style="background:' + (n % 2 ? '#f6f8fa' : '#ffffff') + '">' + c.map(function (x) {
+        return '<td style="' + td + (x[4] === 'r' ? ';text-align:right' : '') + '">' + x[3](i) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    var netIdx = c.map(function (x) { return x[0]; }).indexOf('net');
+    var totalRow = '<tr style="background:#e8eef7;font-weight:bold">' + c.map(function (x, k) {
+      if (k === 0) return '<td style="' + td + '">Total (' + list.length + ' invoice' + (list.length === 1 ? '' : 's') + ')</td>';
+      if (k === netIdx) return '<td style="' + td + ';text-align:right">' + money(total) + '</td>';
+      return '<td style="' + td + '"></td>';
+    }).join('') + '</tr>';
+    return '<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1b1f24">' +
+      '<thead><tr>' + c.map(function (x) { return '<th style="' + th + (x[4] === 'r' ? ';text-align:right' : '') + '">' + x[1] + '</th>'; }).join('') + '</tr></thead>' +
+      '<tbody>' + rows + totalRow + '</tbody></table>';
+  }
+  function mailText(list, cols) {
+    var c = MAIL_COLS.filter(function (x) { return cols[x[0]]; });
+    var strip = function (s) { var t = document.createElement('div'); t.innerHTML = s; return t.textContent; };
+    return [c.map(function (x) { return x[1]; }).join('\t')].concat(list.map(function (i) {
+      return c.map(function (x) { return strip(x[3](i)); }).join('\t');
+    })).concat(['Total\t' + c.slice(1).map(function (x) { return x[0] === 'net' ? money(sum(list, 'net')) : ''; }).join('\t')]).join('\n');
+  }
+  function copyRich(html, text) {
+    var ok = false;
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:-10000px;top:0;background:#fff';
+    box.innerHTML = html;
+    document.body.appendChild(box);
+    var handler = function (e) {
+      try { e.clipboardData.setData('text/html', html); e.clipboardData.setData('text/plain', text); e.preventDefault(); } catch (x) { /* fall back to the selection */ }
+    };
+    document.addEventListener('copy', handler);
+    try {
+      var r = document.createRange(); r.selectNodeContents(box);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      ok = document.execCommand('copy');
+      s.removeAllRanges();
+    } catch (e) { ok = false; }
+    document.removeEventListener('copy', handler);
+    box.remove();
+    if (ok || !(navigator.clipboard && window.ClipboardItem)) return Promise.resolve(ok);
+    return navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })])
+      .then(function () { return true; }, function () { return false; });
+  }
+  function mailForm(mode, preset) {
+    var d = S.panData, invs = d.invoices;
+    var od = invs.filter(function (i) { return i.overdue; });
+    var sel = selInvoices();
+    var saved = store('mailCols') || {};
+    var cols = {};
+    MAIL_COLS.forEach(function (c) { cols[c[0]] = c[5] ? true : saved[c[0]] !== undefined ? saved[c[0]] : !!c[2]; });
+    var st = {
+      scope: preset || (sel.length ? 'sel' : od.length ? 'overdue' : 'all'),
+      fmt: store('mailFmt') || 'mail', mode: mode
+    };
+    var owner = d.owner || S.init.me || '';
+    var sig = S.init.signature || 'Accounts Receivable';
+    var kamCc = S.init.kamDomain ? d.kams.filter(function (k) { return /^[A-Za-z]+\.[A-Za-z.]+$/.test(k); }).map(function (k) { return k.toLowerCase() + '@' + S.init.kamDomain; }) : [];
+    function list() { return st.scope === 'sel' ? sel : st.scope === 'overdue' ? od : invs; }
+    function html() {
+      var l = list(), tot = sum(l, 'net');
+      var tbl = mailTable(l, cols);
+      if (st.fmt === 'table') return tbl;
+      var name = ($('mName') || {}).value || 'Team';
+      var intro = ($('mIntro') || {}).value || '';
+      var close = ($('mClose') || {}).value || '';
+      var p = function (s) { return '<p style="margin:0 0 12px">' + esc(s).replace(/\n/g, '<br>') + '</p>'; };
+      return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1b1f24">' + p('Dear ' + name + ',') +
+        p(intro.replace('{total}', '₹' + money(tot)).replace('{count}', l.length)) + tbl + '<p style="margin:12px 0"></p>' + p(close) +
+        '<p style="margin:0">Regards,<br>' + esc(owner) + '<br>' + esc(sig) + '</p></div>';
+    }
+    function text() {
+      var l = list();
+      if (st.fmt === 'table') return mailText(l, cols);
+      return 'Dear ' + (($('mName') || {}).value || 'Team') + ',\n\n' + (($('mIntro') || {}).value || '').replace('{total}', '₹' + money(sum(l, 'net'))).replace('{count}', l.length) +
+        '\n\n' + mailText(l, cols) + '\n\n' + (($('mClose') || {}).value || '') + '\n\nRegards,\n' + owner + '\n' + sig;
+    }
+    function subject() {
+      return 'Payment reminder – ' + d.customer + ' – ₹' + money(sum(list(), 'net')) + ' outstanding as on ' + fdm(today());
+    }
+    var introDef = 'Greetings! As per our records, the following ' + '{count} invoice(s) of ' + d.customer + ' (PAN ' + d.pan + ') are outstanding as on ' + fdm(today()) + '. Total outstanding: {total}.';
+    var closeDef = 'Request you to share the payment date / remittance details at the earliest. If already paid, please share the UTR details so we can reconcile.';
+    modal('<h2>' + (mode === 'draft' ? '✉️ Gmail draft' : '📋 Copy for mail') + ' · ' + esc(d.customer) + '</h2>' +
+      '<div class="field"><label>Invoices</label><div class="seg" id="mScope">' +
+      (sel.length ? '<button data-v="sel">Selected (' + sel.length + ')</button>' : '') +
+      '<button data-v="overdue">Overdue (' + od.length + ' · ' + inr(sum(od, 'net')) + ')</button>' +
+      '<button data-v="all">All open (' + invs.length + ' · ' + inr(sum(invs, 'net')) + ')</button></div></div>' +
+      '<div class="field"><label>Columns</label><div class="mail-cols" id="mCols">' + MAIL_COLS.map(function (c) {
+        return '<button class="chip' + (cols[c[0]] ? ' on' : '') + '" data-c="' + c[0] + '"' + (c[5] ? ' disabled title="Always included"' : '') + '>' + c[1] + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="field"><label>Format</label><div class="seg" id="mFmt"><button data-v="mail">Full mail (greeting + table + sign-off)</button><button data-v="table">Table only</button></div></div>' +
+      '<div id="mText"><div class="grid"><div class="field"><label>Dear…</label><input id="mName" value="Team"></div>' +
+      '<div class="field"><label>Signed</label><input value="' + esc(owner + ' · ' + sig) + '" disabled></div></div>' +
+      '<div class="field"><label>Opening line ({count} and {total} fill in)</label><textarea id="mIntro">' + esc(introDef) + '</textarea></div>' +
+      '<div class="field"><label>Closing line</label><textarea id="mClose">' + esc(closeDef) + '</textarea></div></div>' +
+      '<div id="mDraft" class="' + (mode === 'draft' ? '' : 'hidden') + '"><div class="field"><label>To</label><input id="mTo" placeholder="accounts@customer.com"></div>' +
+      '<div class="field"><label>Cc</label><input id="mCc" placeholder="KAM / manager" value="' + esc(kamCc.join(', ')) + '"></div>' +
+      '<div class="field"><label>Subject</label><input id="mSubj"></div></div>' +
+      '<div class="field"><label>Preview</label><div class="preview" id="mPrev"></div></div>' +
+      '<label class="check"><input type="checkbox" id="mDaily" checked> Count as today’s follow-up (marks <b>Yes</b> and logs it)</label>' +
+      '<div class="form-actions"><button class="btn" data-close>Close</button>' +
+      '<button class="btn" id="mCopyTxt">Copy as text</button>' +
+      (mode === 'draft' ? '<button class="btn" id="mCopy">📋 Copy</button><button class="btn primary" id="mSave">Create Gmail draft</button>'
+        : '<button class="btn" id="mToDraft">✉️ Gmail draft…</button><button class="btn primary" id="mCopy">📋 Copy</button>') + '</div>', true);
+    function refresh() {
+      all('#mScope button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === st.scope); });
+      all('#mFmt button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === st.fmt); });
+      all('#mCols .chip').forEach(function (b) { b.classList.toggle('on', !!cols[b.getAttribute('data-c')]); });
+      $('mText').classList.toggle('hidden', st.fmt === 'table');
+      $('mPrev').innerHTML = list().length ? html() : '<div class="empty">No invoices in this group</div>';
+      if ($('mSubj') && !$('mSubj').dataset.touched) $('mSubj').value = subject();
+    }
+    on('#mScope button', 'click', function (e, b) { st.scope = b.getAttribute('data-v'); refresh(); });
+    on('#mFmt button', 'click', function (e, b) { st.fmt = b.getAttribute('data-v'); store('mailFmt', st.fmt); refresh(); });
+    on('#mCols .chip', 'click', function (e, b) {
+      var c = b.getAttribute('data-c'); cols[c] = !cols[c];
+      var keep = {}; Object.keys(cols).forEach(function (k) { keep[k] = cols[k]; }); store('mailCols', keep); refresh();
     });
-    var f = document.querySelector('#modal input, #modal select, #modal textarea'); if (f) f.focus();
+    on('#mName, #mIntro, #mClose', 'input', refresh);
+    if ($('mSubj')) $('mSubj').oninput = function () { this.dataset.touched = '1'; };
+    function logCopy() {
+      var l = list();
+      return call('wbLogCopy', base({ invoices: l.map(function (i) { return i.inv; }), total: sum(l, 'net'), markDaily: $('mDaily').checked }))
+        .then(function () { if ($('mDaily').checked && S.panData.header && !S.panData.header.today) S.panData.header.today = 'Yes'; S.book = null; })
+        .catch(function () { /* logging is best-effort */ });
+    }
+    $('mCopy').onclick = function () {
+      if (!list().length) return toast('No invoices in this group', true);
+      copyRich(html(), text()).then(function (ok) {
+        if (!ok) return toast('Your browser blocked copying – select the preview and press Ctrl+C', true);
+        toast('Copied ' + list().length + ' invoice(s) · paste into your mail with Ctrl+V');
+        logCopy();
+      });
+    };
+    $('mCopyTxt').onclick = function () { copyRich(esc(text()).replace(/\n/g, '<br>'), text()).then(function (ok) { toast(ok ? 'Copied as text' : 'Copy blocked', !ok); if (ok) logCopy(); }); };
+    if ($('mToDraft')) $('mToDraft').onclick = function () { $('mDraft').classList.remove('hidden'); this.remove(); var c = $('mCopy'); c.classList.remove('primary');
+      var s = document.createElement('button'); s.className = 'btn primary'; s.textContent = 'Create Gmail draft'; s.onclick = saveDraft; c.parentNode.appendChild(s); refresh(); $('mTo').focus(); };
+    function saveDraft() {
+      var l = list();
+      if (!l.length) return toast('No invoices in this group', true);
+      var btn = this; btn.disabled = true; btn.textContent = 'Creating…';
+      call('wbCreateEmailDraft', base({ to: $('mTo').value, cc: $('mCc').value, subject: $('mSubj').value, html: html(),
+        invoices: l.map(function (i) { return i.inv; }), total: sum(l, 'net'), markDaily: $('mDaily').checked }))
+        .then(function (r) {
+          closeModal();
+          modal('<h2>Draft ready ✅</h2><p>' + l.length + ' invoice(s) · ' + inr(sum(l, 'net'), true) + '</p><div class="form-actions"><button class="btn" data-close>Close</button><a class="btn primary" target="_blank" href="' + esc(r.link) + '">Open Gmail drafts ↗</a></div>');
+          S.book = null;
+        }).catch(function (e) { btn.disabled = false; btn.textContent = 'Create Gmail draft'; fail(e); });
+    }
+    if ($('mSave')) $('mSave').onclick = saveDraft;
+    refresh();
+  }
+
+  // ---------- Forms ----------
+  function modal(html, wide) {
+    $('modal').innerHTML = '<div class="overlay" id="ov"><div class="sheet' + (wide ? ' wide' : '') + '">' + html + '</div></div>';
+    $('ov').onclick = function (e) { if (e.target.id === 'ov') closeModal(); };
+    on('#modal [data-close]', 'click', closeModal);
+    on('#modal [data-date]', 'click', function (e, b) { $(b.getAttribute('data-for')).value = b.getAttribute('data-date'); });
+    var f = document.querySelector('#modal input:not([disabled]), #modal select, #modal textarea'); if (f && MODE === 'full') f.focus();
   }
   function closeModal() { $('modal').innerHTML = ''; }
   function quickDates(forId) {
     var t = today();
-    var opts = [['Today', t], ['Tomorrow', nextWorkday(t)], ['+3d', addDays(t, 3)], ['Fri', nextWeekday(t, 5)], ['Mon', nextWeekday(t, 1)], ['+7d', addDays(t, 7)], ['Month end', t.slice(0, 8) + String(new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7), 0)).getUTCDate())]];
+    var opts = [['Today', t], ['Tomorrow', nextWorkday(t)], ['+3d', addDays(t, 3)], ['Fri', nextWeekday(t, 5)], ['Mon', nextWeekday(t, 1)], ['+7d', addDays(t, 7)], ['Month end', monthEnd(t)]];
     return '<div class="quick">' + opts.map(function (o) { return '<button type="button" class="btn sm" data-for="' + forId + '" data-date="' + o[1] + '">' + o[0] + '</button>'; }).join('') + '</div>';
   }
   function ptpForm() {
     var sel = selInvoices();
     if (!sel.length) return toast('Tick the invoices the customer promised to pay');
-    var total = sel.reduce(function (s, i) { return s + i.net; }, 0);
+    var total = sum(sel, 'net');
     modal('<h2>🤝 Promise to pay · ' + sel.length + ' invoice(s) · ' + inr(total, true) + '</h2>' +
       '<div class="field"><label>PTP date</label><input type="date" id="fDate" min="' + today() + '" value="' + nextWorkday(today()) + '">' + quickDates('fDate') + '</div>' +
       '<div class="field"><label>Amount per invoice (edit for part payment)</label>' + sel.map(function (i) {
@@ -719,14 +1278,14 @@
       '<div class="grid"><div class="field"><label>Payment mode</label><select id="fMode"><option>NEFT / RTGS</option><option>AR-AP adjustment</option><option>Cheque</option><option>UPI</option><option>Other</option></select></div>' +
       '<div class="field"><label>Contact person</label><input id="fContact" placeholder="Name / phone"></div></div>' +
       '<div class="field"><label>Remarks</label><textarea id="fRem" placeholder="e.g. Finance approved, payment run on Friday"></textarea></div>' +
-      '<label class="check"><input type="checkbox" id="fDaily" checked> Mark today as <b>PTP</b> in my tracker</label>' +
-      '<label class="check"><input type="checkbox" id="fRemark" checked> Update PAN remark</label>' +
+      '<label class="check"><input type="checkbox" id="fDaily" checked> Mark today as <b>PTP</b> in the tracker</label>' +
+      '<label class="check"><input type="checkbox" id="fRemark" checked> Update the PAN remark</label>' +
       '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save PTP</button></div>');
-    var recalc = function () { var s = 0; Array.prototype.forEach.call(document.querySelectorAll('.fAmt'), function (x) { s += Number(x.value) || 0; }); $('fTot').textContent = inr(s, true); };
-    Array.prototype.forEach.call(document.querySelectorAll('.fAmt'), function (x) { x.oninput = recalc; });
+    var recalc = function () { var s = 0; all('.fAmt').forEach(function (x) { s += Number(x.value) || 0; }); $('fTot').textContent = inr(s, true); };
+    on('.fAmt', 'input', recalc);
     $('fSave').onclick = function () {
       var amounts = {};
-      Array.prototype.forEach.call(document.querySelectorAll('.fAmt'), function (x) { amounts[x.getAttribute('data-i')] = x.value; });
+      all('.fAmt').forEach(function (x) { amounts[x.getAttribute('data-i')] = x.value; });
       if (!$('fDate').value) return toast('Pick a PTP date', true);
       submit('wbSavePtp', base({
         invoices: sel.map(function (i) { return i.inv; }), ptpDate: $('fDate').value, amounts: amounts,
@@ -745,15 +1304,18 @@
       '<div class="field"><label>Outcome</label><select id="fOut">' + OUTCOMES.map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select></div>' +
       '<div class="field"><label>Notes</label><textarea id="fRem" placeholder="What did they say?"></textarea></div>' +
       '<div class="field"><label>Next follow-up</label><input type="date" id="fNext" value="' + nextWorkday(today()) + '">' + quickDates('fNext') + '</div>' +
-      '<div class="field"><label>Today’s status in my tracker</label><select id="fDaily">' + S.init.dailyValues.map(function (v) { return '<option' + (v === 'Yes' ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '<option value="">(leave as is)</option></select></div>' +
-      '<label class="check"><input type="checkbox" id="fRemark" checked> Update PAN remark (shows in Consolidated)</label>' +
+      '<div class="field"><label>Today’s status in the tracker</label><select id="fDaily">' + S.init.dailyValues.map(function (v) { return '<option' + (v === 'Yes' ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '<option value="">(leave as is)</option></select></div>' +
+      '<label class="check"><input type="checkbox" id="fRemark" checked> Update the PAN remark (shows in Consolidated)</label>' +
       '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
     var ch = 'Call';
-    Array.prototype.forEach.call(document.querySelectorAll('[data-ch]'), function (b) {
-      b.onclick = function () { ch = b.getAttribute('data-ch'); Array.prototype.forEach.call(document.querySelectorAll('[data-ch]'), function (x) { x.classList.toggle('on', x === b); }); };
-    });
+    on('[data-ch]', 'click', function (e, b) { ch = b.getAttribute('data-ch'); all('[data-ch]').forEach(function (x) { x.classList.toggle('on', x === b); }); });
     $('fOut').onchange = function () {
-      if (/PTP given/.test(this.value)) { closeModal(); if (!selInvoices().length) S.panData.invoices.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; }); ptpForm(); }
+      if (/PTP given/.test(this.value)) {
+        closeModal();
+        if (!selInvoices().length) S.panData.invoices.forEach(function (i) { if (i.overdue && !i.ptpDate) S.sel[i.inv] = true; });
+        if (!selInvoices().length) S.panData.invoices.forEach(function (i) { if (i.overdue) S.sel[i.inv] = true; });
+        ptpForm();
+      }
     };
     $('fSave').onclick = function () {
       submit('wbLogFollowUp', base({ channel: ch, outcome: $('fOut').value, remarks: $('fRem').value, nextDate: $('fNext').value, daily: $('fDaily').value, updateRemark: $('fRemark').checked }), 'Follow-up logged');
@@ -769,38 +1331,125 @@
       submit('wbTagInvoices', base({ invoices: sel.map(function (i) { return i.inv; }), tag: $('fTag').value, remarks: $('fRem').value }), 'Invoices tagged');
     };
   }
-  function mailForm() {
-    var sel = selInvoices();
-    var list = sel.length ? sel : S.panData.invoices.filter(function (i) { return i.overdue; });
-    if (!list.length) list = S.panData.invoices;
-    var total = list.reduce(function (s, i) { return s + i.net; }, 0);
-    modal('<h2>✉️ Payment reminder draft</h2><p class="muted">A Gmail draft is created with a statement of <b>' + list.length + '</b> invoice(s) · <b>' + inr(total, true) +
-      '</b>. It is logged as an e-mail follow-up and marks today as “Yes”.</p>' +
-      '<div class="field"><label>To</label><input id="fTo" placeholder="accounts@customer.com"></div>' +
-      '<div class="field"><label>Cc</label><input id="fCc" placeholder="KAM / manager"></div>' +
-      '<div class="field"><label>Addressee name</label><input id="fName" placeholder="Team"></div>' +
-      '<div class="field"><label>Closing line</label><textarea id="fNote">Request you to share the payment date / remittance details at the earliest.</textarea></div>' +
-      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Create draft</button></div>');
-    $('fSave').onclick = function () {
-      var btn = this; btn.disabled = true; btn.textContent = 'Creating…';
-      call('wbCreateEmailDraft', base({ invoices: list.map(function (i) { return i.inv; }), to: $('fTo').value, cc: $('fCc').value, contact: $('fName').value, note: $('fNote').value }))
-        .then(function (r) {
-          closeModal();
-          modal('<h2>Draft ready ✅</h2><p>' + r.count + ' invoices · ' + inr(r.total, true) + '</p><div class="form-actions"><button class="btn" data-close>Close</button><a class="btn primary" target="_blank" href="' + esc(r.link) + '">Open Gmail drafts</a></div>');
-          S.book = null; openPan(S.panData.pan);
-        }).catch(function (e) { btn.disabled = false; btn.textContent = 'Create draft'; fail(e); });
-    };
-  }
-  function remarkForm() {
+  function remarkForm(which) {
     var h = S.panData.header || {};
-    modal('<h2>Edit remark</h2><div class="field"><textarea id="fRem" style="min-height:110px">' + esc(h.remarks || '') + '</textarea></div>' +
+    var tl = which === 'tlRemarks';
+    modal('<h2>' + (tl ? '🧑‍💼 Team lead remark' : '💬 Remark') + ' · ' + esc(S.panData.customer) + '</h2><div class="field"><textarea id="fRem" style="min-height:120px">' + esc(h[which] || '') + '</textarea></div>' +
+      '<div class="quick">' + (tl ? ['Call today', 'Escalate to KAM', 'Propose AR-AP', 'Get PTP this week', 'Check dispute'] : ['Mail sent', 'Called – no answer', 'Payment in process', 'Awaiting UTR', 'Dispute raised'])
+        .map(function (q) { return '<button type="button" class="btn sm" data-q="' + esc(q) + '">' + esc(q) + '</button>'; }).join('') + '</div>' +
       '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
+    on('[data-q]', 'click', function (e, b) {
+      var s = MON[+today().slice(5, 7) - 1];
+      var stamp = today().slice(8, 10) + '-' + s + ': ';
+      $('fRem').value = (stamp + b.getAttribute('data-q') + ($('fRem').value ? '\n' + $('fRem').value : '')); $('fRem').focus();
+    });
     $('fSave').onclick = function () {
       var v = $('fRem').value;
-      call('wbSaveRemark', S.panData.owner || S.me, S.panData.pan, v).then(function () {
-        closeModal(); toast('Remark saved'); if (S.panData.header) S.panData.header.remarks = v; renderPan();
+      call('wbSaveRemark', S.panData.pan, v, which).then(function () {
+        closeModal(); toast(tl ? 'Team lead remark saved' : 'Remark saved'); if (S.panData.header) S.panData.header[which] = v; S.book = null; renderPanKeepScroll();
       }).catch(fail);
     };
+  }
+  function ioForm(rec) {
+    var d = S.panData && !rec ? S.panData : null;
+    var io = rec || (d && d.io) || {};
+    var pan = rec ? rec.pan : d.pan;
+    var customer = rec ? rec.customer : d.customer;
+    var signed = !!io.link;
+    modal('<h2>✍️ IO sign-off · ' + esc(customer) + '</h2>' +
+      '<p class="muted" style="margin-top:0">' + (io.rate ? 'Incentive <b>₹' + io.rate + '</b>' : 'No incentive on the rate card') + (io.band ? ' · ' + esc(io.band) : '') +
+      (io.avgInv ? ' · avg invoicing 6M ' + inr(io.avgInv) : '') + (io.arap50 ? ' · AR-AP &gt; 50%: ' + esc(io.arap50) : '') + '</p>' +
+      '<div class="field"><label>Status</label><div class="seg" id="fSt"><button data-v="1">✅ Signed</button><button data-v="0">⏳ Not yet</button></div></div>' +
+      '<div id="fSigned"><div class="field"><label>IO sign-off link (Drive link to the signed IO)</label><input id="fLink" placeholder="https://drive.google.com/…" value="' + esc(io.link || '') + '"></div>' +
+      '<div class="field"><label>Signed brand PDF (optional)</label><input id="fPdf" placeholder="https://drive.google.com/…" value="' + esc(io.pdf || '') + '"></div>' +
+      '<div class="field"><label>Signed on</label><input type="date" id="fOn" max="' + today() + '" value="' + esc(io.signedOn || today()) + '"></div></div>' +
+      '<div class="field"><label>Remarks</label><textarea id="fRem" placeholder="e.g. Sent for signature to brand finance on 26-Sep">' + esc(io.remarks || '') + '</textarea></div>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
+    var st = signed ? '1' : '0';
+    var paint = function () { all('#fSt button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === st); }); $('fSigned').classList.toggle('hidden', st !== '1'); };
+    on('#fSt button', 'click', function (e, b) { st = b.getAttribute('data-v'); paint(); });
+    paint();
+    $('fSave').onclick = function () {
+      var p = { pan: pan, customer: customer, signed: st === '1', link: $('fLink').value, pdf: $('fPdf').value, remarks: $('fRem').value, signedOn: $('fOn').value };
+      submit('wbSaveIo', p, st === '1' ? 'IO sign-off saved 🎉' : 'IO status saved', rec ? function () { go('io'); } : null);
+    };
+  }
+  function confForm() {
+    var h = S.panData.header || {};
+    var od = h.overdue || 0;
+    modal('<h2>🚦 Collection confidence · ' + esc(S.panData.customer) + '</h2>' +
+      '<p class="muted" style="margin-top:0">Split the amount you expect to collect by confidence. Overdue ' + inr(od, true) + ' · total ' + inr(h.total || 0, true) + '.</p>' +
+      '<div class="quick" style="margin-bottom:8px"><button class="btn sm" data-all="red">All overdue → Red</button><button class="btn sm" data-all="yellow">→ Amber</button><button class="btn sm" data-all="green">→ Green</button><button class="btn sm" data-all="">Clear</button></div>' +
+      '<div class="grid k3"><div class="field"><label style="color:var(--red)">Red</label><input type="number" id="fRed" value="' + esc(h.red) + '"></div>' +
+      '<div class="field"><label style="color:var(--amber)">Amber (Yellow)</label><input type="number" id="fYel" value="' + esc(h.yellow) + '"></div>' +
+      '<div class="field"><label style="color:var(--green)">Green</label><input type="number" id="fGrn" value="' + esc(h.green) + '"></div></div>' +
+      '<div class="small muted" id="fSum"></div>' +
+      '<div class="field" style="margin-top:8px"><label>POE required?</label><select id="fPoe"><option value="">(blank)</option><option' + (h.poe === 'Yes' ? ' selected' : '') + '>Yes</option><option' + (h.poe === 'No' ? ' selected' : '') + '>No</option></select></div>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Save</button></div>');
+    var upd = function () { var s = ['fRed', 'fYel', 'fGrn'].reduce(function (a, id) { return a + (Number($(id).value) || 0); }, 0); $('fSum').textContent = 'Split total ' + inr(s, true) + (od ? ' · ' + Math.round(s / od * 100) + '% of overdue' : ''); };
+    on('#fRed, #fYel, #fGrn', 'input', upd);
+    on('[data-all]', 'click', function (e, b) {
+      var k = b.getAttribute('data-all');
+      $('fRed').value = k === 'red' ? Math.round(od) : ''; $('fYel').value = k === 'yellow' ? Math.round(od) : ''; $('fGrn').value = k === 'green' ? Math.round(od) : ''; upd();
+    });
+    upd();
+    $('fSave').onclick = function () {
+      var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+      call('wbSetConfidence', S.panData.pan, { red: $('fRed').value, yellow: $('fYel').value, green: $('fGrn').value }, $('fPoe').value)
+        .then(function () { closeModal(); toast('Confidence saved'); S.book = null; openPan(S.panData.pan); })
+        .catch(function (e) { btn.disabled = false; btn.textContent = 'Save'; fail(e); });
+    };
+  }
+  function reassignForm(pans) {
+    if (!pans.length) return;
+    var ownerOf = function (p) {
+      if (S.panData && S.panData.pan === p) return S.panData.owner;
+      var r = S.book && S.book.rows.filter(function (x) { return x.pan === p; })[0];
+      return r ? r.owner : '';
+    };
+    var owners = pans.map(ownerOf).filter(function (o, i, a) { return o && a.indexOf(o) === i; });
+    var choices = S.init.associates.filter(function (a) { return !(owners.length === 1 && a === owners[0]); });
+    modal('<h2>🔀 Reassign ' + pans.length + ' PAN(s)</h2>' +
+      '<p class="muted" style="margin-top:0">The PAN moves to the new associate’s tab (first free formula row) with its POE, remarks, team lead remark and R/Y/G. ' +
+      'The old row keeps its daily history. Consolidated’s Associate Name is updated.</p>' +
+      (owners.length === 1 ? '<p class="small muted">Now with <b>' + esc(owners[0]) + '</b></p>' : '') +
+      '<div class="field"><label>New owner</label><select id="fTo">' + choices.map(function (a) { return '<option>' + esc(a) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="faint small" style="overflow-wrap:anywhere">' + esc(pans.join(', ')) + '</div>' +
+      '<div class="form-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="fSave">Reassign</button></div>');
+    $('fSave').onclick = function () {
+      var btn = this; btn.disabled = true; btn.textContent = 'Moving…';
+      var to = $('fTo').value;
+      call('wbReassign', pans, to).then(function (r) {
+        closeModal(); toast(r.count ? r.count + ' PAN(s) moved to ' + to : 'Already with ' + to + ' – nothing moved', !r.count);
+        S.book = S.team = S.overview = null; S.bookSel = {};
+        if (S.pan) openPan(S.pan); else go(S.tab, true);
+      }).catch(function (e) { btn.disabled = false; btn.textContent = 'Reassign'; fail(e); });
+    };
+  }
+  function searchForm() {
+    modal('<h2>🔍 Find a PAN</h2><div class="field"><input id="gq" placeholder="PAN, customer, brand or invoice number" autocomplete="off"></div><div id="gres" class="list"><div class="empty">Type at least 2 characters</div></div>' +
+      '<div class="faint small" style="margin-top:6px">Tip: <kbd>Ctrl</kbd>+<kbd>K</kbd> opens this anywhere.</div>');
+    var q = $('gq'); q.focus();
+    var tmr = null, seq = 0;
+    q.oninput = function () {
+      clearTimeout(tmr);
+      var v = q.value.trim();
+      if (v.length < 2) { $('gres').innerHTML = '<div class="empty">Type at least 2 characters</div>'; return; }
+      tmr = setTimeout(function () {
+        var my = ++seq;
+        $('gres').innerHTML = '<div class="empty">Searching…</div>';
+        call('wbSearch', v).then(function (r) {
+          if (my !== seq) return;
+          $('gres').innerHTML = r.results.length ? r.results.map(function (x) {
+            return '<div class="item" data-pan="' + esc(x.pan) + '"><div class="main"><div class="name">' + esc(x.customer || x.pan) + '</div>' +
+              '<div class="sub">' + esc(x.pan) + ' · ' + esc(x.owner || 'Unassigned') + ' · ' + esc(x.why) + '</div></div>' +
+              '<div class="right"><div class="amt num">' + inr(x.open) + '</div><div class="sub">' + x.invoices + ' open</div></div></div>';
+          }).join('') : '<div class="empty">No match</div>';
+          bindPanClicks('#gres');
+        }).catch(fail);
+      }, 250);
+    };
+    q.onkeydown = function (e) { if (e.key === 'Enter') { var f = document.querySelector('#gres [data-pan]'); if (f) openPan(f.getAttribute('data-pan')); } };
   }
 
   // ---------- PTPs ----------
@@ -814,41 +1463,85 @@
       ['🏷️ Tagged, no PTP', function (p) { return !p.ptpDate && p.tag && p.outstanding > 0; }],
       ['✅ Paid', function (p) { return /^Paid/.test(p.live) && p.ptpDate; }]
     ];
-    var sum = function (arr) { return arr.reduce(function (s, p) { return s + (p.outstanding || 0); }, 0); };
-    var h = '<div class="grid k4" style="margin-bottom:10px">' + groups.slice(0, 4).map(function (g) {
-      var a = rows.filter(g[1]); return kpi(g[0], a.length, inr(sum(a)));
+    var h = '<div class="grid k4" style="margin-bottom:10px">' + groups.slice(0, 4).map(function (g, n) {
+      var a = rows.filter(g[1]); return kpi(g[0], a.length, inr(sum(a, 'outstanding')), '', n === 0 && a.length ? 'red' : '');
     }).join('') + '</div>';
     groups.forEach(function (g) {
       var a = rows.filter(g[1]);
       if (!a.length) return;
       if (MODE === 'full') {
-        h += '<div class="section-title">' + g[0] + ' (' + a.length + ')</div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Invoice</th><th>Brand</th><th>Due date</th>' +
+        h += '<div class="section-title">' + g[0] + ' (' + a.length + ')</div><div class="table-wrap" style="margin-bottom:8px"><table><thead><tr><th>Customer</th>' + (multi() ? '<th>Associate</th>' : '') + '<th>Invoice</th><th>Brand</th><th>Due date</th>' +
           '<th>PTP date</th><th class="r">Promised</th><th class="r">Outstanding</th><th>Status</th><th>Tag</th><th>Mode</th><th>Contact</th><th>Remarks</th></tr></thead><tbody>' +
           a.map(function (p) {
-            return '<tr class="clickable" data-pan="' + esc(p.pan) + '"><td><b>' + esc(p.customer) + '</b></td><td>' + esc(p.invoice) + '</td><td>' + esc(p.brand) + '</td><td>' + fd(p.dueDate) + '</td>' +
+            return '<tr class="clickable" data-pan="' + esc(p.pan) + '"><td><b>' + esc(p.customer) + '</b></td>' + (multi() ? '<td>' + esc(p.associate) + '</td>' : '') + '<td>' + esc(p.invoice) + '</td><td>' + esc(p.brand) + '</td><td>' + fd(p.dueDate) + '</td>' +
               '<td>' + fd(p.ptpDate) + (p.daysLate ? ' <span class="pill red">' + p.daysLate + 'd late</span>' : '') + '</td><td class="r num">' + (p.ptpAmount !== '' ? inr(p.ptpAmount) : '') + '</td>' +
-              '<td class="r num">' + inr(p.outstanding) + '</td><td>' + statusPill(p.live) + '</td><td>' + tagPill(p.tag) + '</td><td>' + esc(p.mode) + '</td><td>' + esc(p.contact) + '</td><td>' + esc(p.remarks) + '</td></tr>';
+              '<td class="r num">' + inr(p.outstanding) + '</td><td>' + statusPill(p.live) + '</td><td>' + tagPill(p.tag) + '</td><td>' + esc(p.mode) + '</td><td>' + esc(p.contact) + '</td><td class="wrap">' + esc(p.remarks) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
       } else {
         h += section(g[0], a.length, ptpList(a.slice(0, 50)), '');
       }
     });
-    if (!rows.length) h += '<div class="card"><div class="empty">No PTPs yet. Open a PAN, tick invoices and press 🤝 PTP.</div></div>';
+    if (!rows.length) h += '<div class="card"><div class="empty">No PTPs yet. Open a PAN and pick a PTP date on any invoice.</div></div>';
     $('view').innerHTML = h;
     bindPanClicks();
   }
 
-  // ---------- Productivity ----------
+  // ---------- IO ----------
+  function renderIo() {
+    var d = S.io, s = d.stats;
+    var q = S.ioQ.toLowerCase();
+    var rows = d.rows.filter(function (r) {
+      if (S.ioFilter === 'pending' && r.done) return false;
+      if (S.ioFilter === 'signed' && !r.done) return false;
+      if (S.ioFilter === 'month' && !r.thisMonth) return false;
+      if (S.ioFilter === 'overdue' && !(r.overdue > 0 && !r.done)) return false;
+      return !q || (r.pan + ' ' + r.customer + ' ' + r.band + ' ' + r.assoc).toLowerCase().indexOf(q) >= 0;
+    });
+    var h = '<div class="grid k4" style="margin-bottom:10px">' +
+      kpi('Signed', s.done + ' / ' + s.pans, pct(s.pans ? s.done / s.pans : 0) + ' of rate-card PANs', '', 'green') +
+      kpi('Incentive earned', '₹' + s.earned.toLocaleString('en-IN'), '₹' + s.earnedMonth.toLocaleString('en-IN') + ' this month') +
+      kpi('Pending', s.pending, '₹' + s.potential.toLocaleString('en-IN') + ' still to earn', '', s.pending ? 'amber' : '') +
+      kpi('Pending with overdue', d.rows.filter(function (r) { return !r.done && r.overdue > 0; }).length, 'sign-off + collection in one call') + '</div>';
+    h += '<div class="search"><input id="ioq" placeholder="Search customer, PAN, band…" value="' + esc(S.ioQ) + '"></div>';
+    h += '<div class="chips">' + [['pending', 'Pending'], ['overdue', 'Pending with overdue'], ['month', 'Signed this month'], ['signed', 'Signed'], ['all', 'All']].map(function (f) {
+      return '<button class="chip' + (S.ioFilter === f[0] ? ' on' : '') + '" data-io="' + f[0] + '">' + f[1] + '</button>';
+    }).join('') + '</div>';
+    if (MODE === 'full') {
+      h += '<div class="table-wrap" style="max-height:calc(100vh - 300px)"><table><thead><tr><th>Customer / PAN</th>' + (multi() ? '<th>Associate</th>' : '') + '<th>Band</th><th class="r">Avg invoicing 6M</th><th>AR-AP&gt;50%</th><th class="r">Incentive</th>' +
+        '<th class="r">Open</th><th class="r">Overdue</th><th>Status</th><th>Remarks</th><th></th></tr></thead><tbody>' + rows.slice(0, 500).map(function (r) {
+          return '<tr class="clickable" data-pan="' + esc(r.pan) + '"><td><b>' + esc(r.customer) + '</b><div class="faint small">' + esc(r.pan) + '</div></td>' + (multi() ? '<td>' + esc(r.assoc) + '</td>' : '') +
+            '<td>' + esc(r.band) + '</td><td class="r num">' + inr(r.avgInv) + '</td><td>' + esc(r.arap50) + '</td><td class="r num">' + (r.rate ? '₹' + r.rate : '–') + '</td>' +
+            '<td class="r num">' + inr(r.open) + '</td><td class="r num">' + inr(r.overdue) + '</td><td>' + (r.done ? '<span class="pill green">Signed' + (r.signedOn ? ' ' + fds(r.signedOn) : '') + '</span>' : '<span class="pill amber">Pending</span>') + '</td>' +
+            '<td class="wrap">' + esc(r.remarks) + '</td><td><button class="btn sm" data-iopan="' + esc(r.pan) + '">✍️ Update</button></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    } else {
+      h += '<div class="list">' + (rows.length ? rows.slice(0, 250).map(function (r) {
+        return '<div class="item" data-pan="' + esc(r.pan) + '"><div class="main"><div class="name">' + esc(r.customer) + '</div>' +
+          '<div class="sub">' + esc(r.pan) + ' · ' + esc(r.band || 'no band') + (multi() ? ' · <b>' + esc(r.assoc) + '</b>' : '') + '</div>' +
+          '<div class="tags">' + (r.done ? '<span class="pill green">Signed' + (r.signedOn ? ' ' + fds(r.signedOn) : '') + '</span>' : '<span class="pill amber">Pending</span>') +
+          (r.overdue > 0 ? '<span class="pill">overdue ' + inr(r.overdue) + '</span>' : '') + (r.remarks ? '<span class="pill" title="' + esc(r.remarks) + '">💬</span>' : '') + '</div></div>' +
+          '<div class="right"><div class="amt num">' + (r.rate ? '₹' + r.rate : '–') + '</div><button class="btn sm" data-iopan="' + esc(r.pan) + '" style="margin-top:4px">✍️</button></div></div>';
+      }).join('') : '<div class="empty">Nothing here</div>') + '</div>';
+    }
+    $('view').innerHTML = h;
+    bindPanClicks();
+    $('ioq').oninput = function () { S.ioQ = this.value; var p = this.selectionStart; renderIo(); var n = $('ioq'); n.focus(); n.setSelectionRange(p, p); };
+    on('[data-io]', 'click', function (e, c) { S.ioFilter = c.getAttribute('data-io'); renderIo(); });
+    on('[data-iopan]', 'click', function (e, b) { e.stopPropagation(); var r = d.rows.filter(function (x) { return x.pan === b.getAttribute('data-iopan'); })[0]; if (r) ioForm(r); });
+  }
+
+  // ---------- Stats ----------
   function renderStats() {
-    var d = S.stats, m = d.mine || {}, a = d.acts, p = d.ptp;
+    var d = S.stats, m = d.mine || {}, a = d.acts, p = d.ptp, io = d.io || {};
     var n = function (o) { return Object.keys(o).reduce(function (s, k) { return s + o[k]; }, 0); };
-    var h = '<div class="grid k6" style="margin-bottom:10px">' +
+    var h = '<div class="section-title" style="margin-top:0"><span>📈 ' + esc(d.who) + '</span></div>';
+    h += '<div class="grid k6" style="margin-bottom:10px">' +
       kpi('Coverage today', pct(m.todayCov), (m.touchedToday || 0) + ' of ' + (m.active || 0) + ' PANs') +
-      kpi('Coverage MTD (avg/day)', pct(m.mtdCov), 'days elapsed this month') +
+      kpi('Coverage MTD', pct(m.mtdCov), 'avg per working day') +
       kpi('Activities today', n(a.today), n(a.week) + ' this week · ' + n(a.month) + ' MTD') +
       kpi('PTPs given', p.given, inr(p.givenAmt)) +
       kpi('PTP kept rate', pct(p.keptRate), p.kept + ' kept · ' + p.broken + ' broken') +
-      kpi('Untouched 3d+', m.untouched3 || 0, 'PANs with balance') + '</div>';
+      kpi('IO signed', (io.done || 0) + ' / ' + (io.pans || 0), '₹' + (io.earnedMonth || 0).toLocaleString('en-IN') + ' this month') + '</div>';
     h += '<div class="cols2"><div class="card"><h3>Daily coverage · last 3 weeks</h3>' + trendChart(m.trend || []) +
       '<div class="legend"><span><i class="dot d-yes"></i>Yes</span><span><i class="dot d-ptp"></i>PTP</span><span><i class="dot d-exp"></i>Expected pmt</span><span><i class="dot d-nd"></i>Not due</span><span><i class="dot d-no"></i>No</span></div></div>';
     h += '<div class="card"><h3>Activity mix</h3>' + actTable(a) +
@@ -856,13 +1549,15 @@
       '<div>Open</div><div class="num">' + p.open + ' · ' + inr(p.openAmt) + (p.partial ? ' (' + p.partial + ' part-paid)' : '') + '</div>' +
       '<div>Paid on/before PTP</div><div class="num">' + p.kept + '</div><div>Paid after PTP</div><div class="num">' + p.missed + '</div>' +
       '<div>Collected vs PTP</div><div class="num">' + inr(p.keptAmt) + '</div>' +
-      '<div>Broken</div><div class="num">' + p.broken + ' · ' + inr(p.brokenAmt) + '</div></div></div></div>';
-    h += '<div class="section-title">Team leaderboard</div><div class="table-wrap"><table><thead><tr><th>#</th><th>Associate</th><th class="r">Active PANs</th><th class="r">Today</th><th class="r">MTD coverage</th>' +
-      '<th class="r">Untouched 3d+</th><th class="r">Activities MTD</th><th class="r">Overdue</th><th class="r">&gt;60</th></tr></thead><tbody>' +
+      '<div>Broken</div><div class="num">' + p.broken + ' · ' + inr(p.brokenAmt) + '</div>' +
+      '<div>Not followed up</div><div class="num">' + (m.untouched3 || 0) + ' PANs</div></div></div></div>';
+    h += '<div class="section-title">🏆 Team leaderboard</div><div class="table-wrap"><table><thead><tr><th>#</th><th>Associate</th><th class="r">Active</th><th class="r">Today</th><th class="r">MTD coverage</th>' +
+      '<th class="r">Not followed</th><th class="r">Activities MTD</th><th class="r">Kept %</th><th class="r">IO this month</th><th class="r">Overdue</th><th class="r">&gt;60</th></tr></thead><tbody>' +
       d.team.map(function (t, i) {
-        return '<tr class="' + (t.assoc === S.me ? 'lb-me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(t.assoc) + '</td><td class="r num">' + t.active + '</td>' +
+        return '<tr class="' + (t.assoc === d.who ? 'lb-me' : '') + '"><td>' + (i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1) + '</td><td>' + esc(t.assoc) + '</td><td class="r num">' + t.active + '</td>' +
           '<td class="r num">' + pct(t.todayCov) + '</td><td class="r num">' + pct(t.mtdCov) + '<div class="progress"><div style="width:' + Math.round(t.mtdCov * 100) + '%"></div></div></td>' +
-          '<td class="r num">' + t.untouched3 + '</td><td class="r num">' + t.actsMtd + '</td><td class="r num">' + inr(t.overdue) + '</td><td class="r num">' + inr(t.gt60) + '</td></tr>';
+          '<td class="r num">' + t.untouched3 + '</td><td class="r num">' + t.actsMtd + '</td><td class="r num">' + pct(t.keptRate) + '</td><td class="r num">' + t.ioMonth + '</td>' +
+          '<td class="r num">' + inr(t.overdue) + '</td><td class="r num">' + inr(t.gt60) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     $('view').innerHTML = h;
   }
@@ -893,6 +1588,135 @@
       svg += '<text x="' + (x + (bw - 4) / 2) + '" y="' + (H + 12) + '" font-size="9" text-anchor="middle" fill="' + (dow(t.date) === 0 ? '#ea4335' : '#8a94a3') + '">' + t.date.slice(8) + '</text>';
     });
     return svg + '</svg>';
+  }
+
+  // ---------- Team review ----------
+  function renderTeam() {
+    var d = S.team, as = d.associates;
+    var T = function (k) { return sum(as, k); };
+    var act = T('active');
+    var h = '<div class="between" style="margin-bottom:8px"><div class="section-title" style="margin:0">👥 ' + (d.teamLead ? esc(d.teamLead) + '’s team' : 'All associates') + ' · ' + as.length + '</div>' +
+      '<span>' + asOf(d.builtAt) + ' <button class="btn sm" id="tRefresh">↻ Live</button></span></div>';
+    h += '<div class="grid k6" style="margin-bottom:10px">' +
+      kpi('Overdue', inr(T('overdue')), act + ' active PANs') +
+      kpi('Coverage today', pct(act ? T('touchedToday') / act : 0), T('touchedToday') + ' PANs touched') +
+      kpi('Coverage MTD', pct(act ? sum(as, function (a) { return a.mtdCov * a.active; }) / act : 0), 'weighted by PANs') +
+      kpi('Not followed up', T('stale'), 'PANs with overdue', '', T('stale') ? 'amber' : '') +
+      kpi('Broken PTPs', T('broken'), T('ptpOpen') + ' open PTP invoices', '', T('broken') ? 'red' : '') +
+      kpi('IO signed', T('ioDone'), T('ioMonth') + ' this month · ' + T('ioPending') + ' pending') + '</div>';
+    h += '<div class="table-wrap" style="margin-bottom:10px"><table><thead><tr><th>Associate</th><th class="r">Active</th><th class="r">Overdue</th><th class="r">&gt;60</th><th class="r">Today</th><th class="r">MTD</th>' +
+      '<th class="r">Not followed</th><th class="r">Open PTP</th><th class="r">Broken</th><th class="r">Kept %</th><th class="r">Remarks on overdue</th><th>R / A / G</th><th class="r">IO ✓ / ⏳</th></tr></thead><tbody>' +
+      as.slice().sort(function (a, b) { return b.overdue - a.overdue; }).map(function (a) {
+        var rag = (a.red || 0) + (a.yellow || 0) + (a.green || 0);
+        return '<tr class="clickable" data-assoc="' + esc(a.name) + '"><td><b>' + esc(a.name) + '</b></td><td class="r num">' + a.active + '</td><td class="r num">' + inr(a.overdue) + '</td><td class="r num">' + inr(a.gt60) + '</td>' +
+          '<td class="r num">' + pct(a.todayCov) + '</td><td class="r num">' + pct(a.mtdCov) + '<div class="progress"><div style="width:' + Math.round(a.mtdCov * 100) + '%"></div></div></td>' +
+          '<td class="r num">' + (a.stale ? '<span class="pill amber">' + a.stale + '</span>' : 0) + '</td><td class="r num">' + a.ptpOpen + '</td><td class="r num">' + (a.broken ? '<span class="pill red">' + a.broken + '</span>' : 0) + '</td>' +
+          '<td class="r num">' + pct(a.keptRate) + '</td><td class="r num">' + pct(a.remarksPct) + '</td>' +
+          '<td style="min-width:110px">' + (rag ? '<div class="bar" style="margin:0" title="R ' + inr(a.red) + ' · A ' + inr(a.yellow) + ' · G ' + inr(a.green) + '">' +
+            [[a.red, '#ea4335'], [a.yellow, '#fbbc04'], [a.green, '#34a853']].map(function (x) { return x[0] ? '<div style="width:' + (x[0] / rag * 100) + '%;background:' + x[1] + '"></div>' : ''; }).join('') + '</div>' : '<span class="faint">–</span>') + '</td>' +
+          '<td class="r num">' + a.ioDone + ' / ' + a.ioPending + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    var Q = [
+      ['broken', '🔴 Broken PTPs'], ['stale', '💤 Not followed up'], ['gt60NoPtp', '⏳ >60 days, no PTP'],
+      ['noRemark', '📝 Overdue, no remark'], ['red', '🚨 Red confidence'], ['exposure', '⚠️ Exposure with overdue'], ['ioPending', '✍️ IO pending, highest incentive']
+    ];
+    h += '<div class="cols3">' + Q.map(function (q) {
+      var list = d.queues[q[0]] || [];
+      return section(q[1], list.length, panList(list.slice(0, 8), 'owner'), '');
+    }).join('') + '</div>';
+    $('view').innerHTML = h;
+    bindPanClicks();
+    $('tRefresh').onclick = function () { S.team = null; go('team', true); };
+    on('[data-assoc]', 'click', function (e, tr) {
+      var k = 'a:' + tr.getAttribute('data-assoc');
+      var sel = $('scope');
+      if (!Array.prototype.some.call(sel.options, function (o) { return o.value === k; })) return;
+      sel.value = k; setScope(k); go('pans');
+    });
+  }
+
+  // ---------- Overview ----------
+  function renderOverview() {
+    var d = S.overview, t = d.total, io = d.io;
+    var ragT = (t.red || 0) + (t.yellow || 0) + (t.green || 0);
+    var bad = d.health.filter(function (x) { return x.level !== 'ok'; }).length;
+    var h = '<div class="between" style="margin-bottom:8px"><div class="section-title" style="margin:0">🧭 Portfolio overview</div>' +
+      '<span>' + asOf(d.builtAt) + ' <button class="btn sm" id="oRefresh">↻ Live</button></span></div>';
+    if (bad) h += '<div class="banner" id="hJump" style="cursor:pointer">🩺 <b>' + bad + ' data check(s) need attention</b> – the Summary tab may be off. Tap to see.</div>';
+    h += '<div class="grid k6" style="margin-bottom:10px">' +
+      kpi('Total receivables', inr(t.total), t.active + ' PANs with balance') +
+      kpi('Overdue', inr(t.overdue), pct(t.total ? t.overdue / t.total : 0) + ' of total · ' + t.overdueAccts + ' PANs') +
+      kpi('>60 days', inr(t.gt60), t.gt60Accts + ' PANs', '', 'amber') +
+      kpi('Possible AR-AP', inr(t.possibleArAp), 'historic PANs ' + inr(t.possibleArApHist)) +
+      kpi('Coverage today', pct(t.todayCov), t.touchedToday + ' PANs · MTD ' + pct(t.mtdCov)) +
+      kpi('Not followed up', t.stale, 'PANs with overdue', '', t.stale ? 'amber' : '') +
+      kpi('Open PTPs', inr(t.ptpAmt), t.ptpOpen + ' invoices') +
+      kpi('Broken PTPs', t.broken, 'kept rate ' + pct(t.keptRate), '', t.broken ? 'red' : '') +
+      kpi('Net payable', inr(t.netPayable), 'we owe these PANs') +
+      kpi('Exposure PANs', t.exposureAccts, 'on the defaulting list') +
+      kpi('IO signed', io.done, io.pending + ' pending') +
+      kpi('IO incentive', '₹' + io.earned.toLocaleString('en-IN'), '₹' + io.earnedMonth.toLocaleString('en-IN') + ' this month', '', 'green') + '</div>';
+    h += '<div class="cols2"><div class="card"><h3>Ageing</h3>' + ageBar({ b0: t.b[0], b1: t.b[1], b2: t.b[2], b3: t.b[3], b4: t.b[4], b5: t.b[5], b6: t.b[6] }) + '</div>' +
+      '<div class="card"><h3>Collection confidence (R / A / G)</h3>' + (ragT ? '<div class="bar">' + [[t.red, '#ea4335', 'Red'], [t.yellow, '#fbbc04', 'Amber'], [t.green, '#34a853', 'Green']].map(function (x) {
+        return x[0] ? '<div style="width:' + (x[0] / ragT * 100) + '%;background:' + x[1] + '" title="' + x[2] + ' ' + inr(x[0]) + '"></div>' : '';
+      }).join('') + '</div><div class="blegend"><span><i style="background:#ea4335"></i>Red <b>' + inr(t.red) + '</b></span><span><i style="background:#fbbc04"></i>Amber <b>' + inr(t.yellow) + '</b></span><span><i style="background:#34a853"></i>Green <b>' + inr(t.green) + '</b></span></div>' +
+        '<div class="faint small" style="margin-top:4px">' + pct(t.overdue ? ragT / t.overdue : 0) + ' of overdue has a confidence split</div>' : '<div class="faint">No R/A/G amounts entered yet.</div>') + '</div></div>';
+    h += '<div class="card"><h3>Trend (nightly snapshots)</h3>' + ovTrend(d.trend) + '</div>';
+    // Associates
+    var cols = [['name', 'Associate'], ['teamLead', 'Team lead'], ['active', 'Active', 1], ['total', 'Total', 1, 1], ['overdue', 'Overdue', 1, 1], ['gt60', '>60', 1, 1], ['arap', 'AR-AP', 1, 1],
+      ['todayCov', 'Today', 1, 2], ['mtdCov', 'MTD', 1, 2], ['stale', 'Not followed', 1], ['ptpAmt', 'Open PTP', 1, 1], ['broken', 'Broken', 1], ['keptRate', 'Kept %', 1, 2], ['ioDone', 'IO ✓', 1], ['ioPending', 'IO ⏳', 1]];
+    var as = d.associates.slice().sort(function (a, b) { var x = a[S.ovSort.k], y = b[S.ovSort.k]; if (x === y) return 0; return (x > y ? 1 : -1) * S.ovSort.d; });
+    h += '<div class="section-title">Associates</div><div class="table-wrap" style="margin-bottom:10px"><table><thead><tr>' + cols.map(function (c) {
+      return '<th class="' + (c[2] ? 'r' : '') + '" data-osort="' + c[0] + '">' + c[1] + (S.ovSort.k === c[0] ? (S.ovSort.d > 0 ? ' ▲' : ' ▼') : '') + '</th>';
+    }).join('') + '</tr></thead><tbody>' + as.map(function (a) {
+      return '<tr class="clickable" data-assoc="' + esc(a.name) + '">' + cols.map(function (c) {
+        var v = a[c[0]];
+        return '<td class="' + (c[2] ? 'r num' : '') + '">' + (c[3] === 1 ? inr(v) : c[3] === 2 ? pct(v) : esc(v)) + '</td>';
+      }).join('') + '</tr>';
+    }).join('') + '<tr class="tot"><td>Total</td><td></td><td class="r num">' + t.active + '</td><td class="r num">' + inr(t.total) + '</td><td class="r num">' + inr(t.overdue) + '</td><td class="r num">' + inr(t.gt60) + '</td><td class="r num">' + inr(t.possibleArAp) + '</td>' +
+      '<td class="r num">' + pct(t.todayCov) + '</td><td class="r num">' + pct(t.mtdCov) + '</td><td class="r num">' + t.stale + '</td><td class="r num">' + inr(t.ptpAmt) + '</td><td class="r num">' + t.broken + '</td><td class="r num">' + pct(t.keptRate) + '</td><td class="r num">' + io.done + '</td><td class="r num">' + io.pending + '</td></tr></tbody></table></div>';
+    // Breakdowns
+    var grp = function (title, list) {
+      return '<div><div class="section-title">' + title + '</div><div class="table-wrap"><table><thead><tr><th></th><th class="r">PANs</th><th class="r">Overdue</th><th class="r">&gt;60</th><th class="r">AR-AP</th></tr></thead><tbody>' +
+        list.map(function (g) { return '<tr><td class="ellipsis" style="max-width:170px" title="' + esc(g.key) + '">' + esc(g.key) + '</td><td class="r num">' + g.pans + '</td><td class="r num">' + inr(g.overdue) + '</td><td class="r num">' + inr(g.gt60) + '</td><td class="r num">' + inr(g.arap) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+    };
+    h += '<div class="cols3">' + grp('By business model', d.byModel) + grp('By BU head', d.byBu) + grp('By team lead', d.byTeamLead) + '</div>';
+    h += '<div class="section-title">Top 20 overdue PANs</div>' + panList(d.topOverdue, 'owner');
+    // Health
+    h += '<div class="section-title" id="health">🩺 Data health checks</div><div class="list">' + d.health.map(function (c) {
+      var ic = c.level === 'ok' ? '✅' : c.level === 'warn' ? '⚠️' : '🛑';
+      return '<div class="health"><div class="ic">' + ic + '</div><div class="grow"><div style="font-weight:600">' + esc(c.title) + '</div><div class="muted small">' + esc(c.detail) + '</div>' +
+        (c.items && c.items.length ? '<details style="margin-top:4px"><summary class="small" style="cursor:pointer;color:var(--accent)">Show ' + c.items.length + '</summary><div style="margin-top:4px">' + c.items.map(function (it) {
+          return '<div class="small" style="padding:3px 0;border-bottom:1px dashed var(--line2)">' +
+            (it.pan ? '<a href="#" data-open="' + esc(it.pan) + '">' + esc(it.pan) + '</a> ' : '') + (it.customer ? esc(it.customer) + ' · ' : '') + (it.owner ? '<b>' + esc(it.owner) + '</b> · ' : '') +
+            (it.amount ? inr(it.amount) + ' · ' : '') + esc(it.note || '') + (c.id === 'unassigned' && it.pan ? ' <button class="btn sm" data-assign="' + esc(it.pan) + '">Assign…</button>' : '') + '</div>';
+        }).join('') + '</div></details>' : '') + '</div></div>';
+    }).join('') + '</div>';
+    $('view').innerHTML = h;
+    bindPanClicks();
+    $('oRefresh').onclick = function () { S.overview = null; go('overview', true); };
+    if ($('hJump')) $('hJump').onclick = function () { $('health').scrollIntoView({ behavior: 'smooth' }); };
+    on('th[data-osort]', 'click', function (e, th) { var k = th.getAttribute('data-osort'); S.ovSort = { k: k, d: S.ovSort.k === k ? -S.ovSort.d : -1 }; renderOverview(); });
+    on('[data-assoc]', 'click', function (e, tr) { var k = 'a:' + tr.getAttribute('data-assoc'); $('scope').value = k; setScope(k); go('pans'); });
+    on('[data-open]', 'click', function (e, a) { e.preventDefault(); openPan(a.getAttribute('data-open')); });
+    on('[data-assign]', 'click', function (e, b) { e.preventDefault(); reassignForm([b.getAttribute('data-assign')]); });
+  }
+  function ovTrend(tr) {
+    if (!tr || tr.length < 2) return '<div class="faint">The trend fills in from the nightly snapshot (22:00). ' + (tr && tr.length ? '1 day so far.' : 'No snapshots yet – run “Take snapshot now” from the menu to start.') + '</div>';
+    var W = 620, H = 150, pad = 34;
+    var maxO = Math.max.apply(null, tr.map(function (x) { return x.overdue; }).concat([1]));
+    var bw = (W - pad) / tr.length;
+    var pts = tr.map(function (x, i) { return (pad + i * bw + bw / 2) + ',' + (H - x.overdue / maxO * (H - 12)); }).join(' ');
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + (H + 18) + '" width="100%" role="img" aria-label="Overdue and coverage trend">';
+    tr.forEach(function (x, i) {
+      var bh = x.cov * (H - 12);
+      svg += '<rect x="' + (pad + i * bw + 2) + '" y="' + (H - bh) + '" width="' + Math.max(bw - 4, 2) + '" height="' + bh + '" fill="#c9dafc"><title>' + fd(x.date) + ' · coverage ' + pct(x.cov) + '</title></rect>';
+      if (i % Math.ceil(tr.length / 12) === 0) svg += '<text x="' + (pad + i * bw + bw / 2) + '" y="' + (H + 13) + '" font-size="9" text-anchor="middle" fill="#8a94a3">' + fds(x.date) + '</text>';
+    });
+    svg += '<polyline points="' + pts + '" fill="none" stroke="#c5221f" stroke-width="2"/>';
+    tr.forEach(function (x, i) { svg += '<circle cx="' + (pad + i * bw + bw / 2) + '" cy="' + (H - x.overdue / maxO * (H - 12)) + '" r="2.5" fill="#c5221f"><title>' + fd(x.date) + ' · overdue ' + inr(x.overdue) + '</title></circle>'; });
+    svg += '<text x="0" y="10" font-size="9" fill="#c5221f">' + inr(maxO) + '</text><line x1="' + pad + '" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#e3e6ea"/></svg>';
+    return svg + '<div class="legend"><span><i class="dot" style="background:#c5221f"></i>Overdue</span><span><i class="dot" style="background:#c9dafc"></i>Coverage %</span></div>';
   }
 })();
 </script>

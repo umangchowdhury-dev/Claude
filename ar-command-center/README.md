@@ -1,5 +1,7 @@
 # AR Command Center
 
+> **Superseded by [AR Workbench v2](../ar-workbench/README.md).** Everything this separate sheet offered (team review, management overview, IO sign-offs, R/A/G, reassigning, snapshots, reconciliation checks) now runs inside the live tracker as part of the workbench. There's no second sheet and no sync. This folder is kept for reference only.
+
 A **new Google Sheet** that replaces the "Associate Level Ageing Master – AR" tracker. It serves associates, team leads and management in one place: the PAN book, invoice drill-down, PTPs per invoice, follow-ups, reviews, dashboards and history.
 
 It starts in **TEST mode**. In TEST mode it copies everything from the current live sheet every 30 minutes. It only reads the live sheet and never changes it. This lets you review the new sheet side by side with the old one before anyone moves over. When you're happy, switch it to **LIVE mode** and it becomes the tracker (see [Cut-over](#cut-over-test--live)).
