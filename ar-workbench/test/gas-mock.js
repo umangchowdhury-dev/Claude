@@ -33,6 +33,10 @@ class Range {
     return out;
   }
   getValue() { return this.getValues()[0][0]; }
+  /** Strings starting with "=" stand in for formulas in fixtures. */
+  getFormulas() { return this.getValues().map((r) => r.map((v) => (typeof v === 'string' && v.charAt(0) === '=' ? v : ''))); }
+  getFormula() { return this.getFormulas()[0][0]; }
+  copyTo(dest) { dest.setValues(this.getValues()); }
   setValues(vals) {
     if (vals.length !== this.nr || vals[0].length !== this.nc) throw new Error(`setValues dims ${vals.length}x${vals[0].length} != ${this.nr}x${this.nc}`);
     vals.forEach((line, r) => line.forEach((v, c) => this.sheet.set(this.row + r, this.col + c, v)));
@@ -97,6 +101,9 @@ class Sheet {
   getActiveCell() { return new Range(this, this.active.row, this.active.col, 1, 1); }
   setActiveRange(r) { this.active = { row: r.row, col: r.col }; return r; }
   appendRow(vals) { const r = this.getLastRow() + 1; vals.forEach((v, i) => this.set(r, i + 1, v)); this.writes += 1; }
+  deleteRow(r) { this.data.splice(r - 1, 1); this.writes += 1; }
+  getMaxRows() { return Math.max(this.data.length, 1); }
+  insertRowsAfter(after, n) { for (let i = 0; i < n; i++) this.data.splice(after, 0, []); }
   setFrozenRows() {}
 }
 
@@ -121,11 +128,16 @@ function formatDate(d, tz, fmt) {
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   if (fmt === 'yyyy-MM-dd') return `${get('year')}-${get('month')}-${get('day')}`;
   if (fmt === 'dd-MMM') return `${get('day')}-${MON[+get('month') - 1]}`;
+  if (fmt === 'dd-MMM HH:mm') {
+    const t = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+    return `${get('day')}-${MON[+get('month') - 1]} ${t}`;
+  }
   throw new Error('formatDate fmt not mocked: ' + fmt);
 }
 
 function load(fixture, opts = {}) {
   const ss = new Spreadsheet(fixture);
+  let email = opts.email === undefined ? 'associate@example.com' : opts.email;
   const cache = new Map();
   const userProps = new Map();
   const drafts = [];
@@ -135,11 +147,14 @@ function load(fixture, opts = {}) {
     Date, // share the host Date so `instanceof Date` works for fixture values inside the sandbox
     SpreadsheetApp: {
       getActive: () => ss,
-      getUi: () => ({ alert() {}, showSidebar() {}, showModalDialog() {}, createMenu: () => ({ addItem() { return this; }, addSeparator() { return this; }, addToUi() {} }) })
+      getUi: () => ({ alert() {}, showSidebar() {}, showModalDialog() {}, createMenu: () => ({ addItem() { return this; }, addSeparator() { return this; }, addToUi() {} }) }),
+      flush() {},
+      CopyPasteType: { PASTE_FORMULA: 'PASTE_FORMULA' }
     },
     CacheService: {
       getScriptCache: () => ({
         get: (k) => (cache.has(k) ? cache.get(k) : null),
+        remove: (k) => { cache.delete(k); },
         put: (k, v) => { if (String(v).length > 100 * 1024) throw new Error('Argument too large'); cache.set(k, String(v)); },
         getAll: (keys) => { const o = {}; keys.forEach((k) => { if (cache.has(k)) o[k] = cache.get(k); }); return o; },
         putAll: (o) => { Object.keys(o).forEach((k) => { if (String(o[k]).length > 100 * 1024) throw new Error('Argument too large: ' + k); cache.set(k, String(o[k])); }); }
@@ -148,7 +163,7 @@ function load(fixture, opts = {}) {
     PropertiesService: { getUserProperties: () => ({ getProperty: (k) => (userProps.has(k) ? userProps.get(k) : null), setProperty: (k, v) => userProps.set(k, v) }) },
     LockService: { getDocumentLock: () => ({ waitLock() {}, releaseLock() {} }) },
     Utilities: { formatDate },
-    Session: { getActiveUser: () => ({ getEmail: () => opts.email || 'associate@example.com' }) },
+    Session: { getActiveUser: () => ({ getEmail: () => email }) },
     GmailApp: { createDraft: (to, subject, body, o) => { drafts.push({ to, subject, body, o }); return { getId: () => 'draft-' + drafts.length }; } },
     ScriptApp: {
       getProjectTriggers: () => triggers.map((t) => ({ getHandlerFunction: () => t })),
@@ -164,7 +179,10 @@ function load(fixture, opts = {}) {
   vm.createContext(ctx);
   const code = fs.readFileSync(path.join(__dirname, '..', 'src', 'Code.gs'), 'utf8');
   vm.runInContext(code, ctx, { filename: 'Code.gs' });
-  return { ctx, ss, cache, drafts, triggers };
+  /** Each google.script.run call is a fresh execution in Apps Script: forget per-execution memos. */
+  const fresh = () => { ctx.wbSettingsMemo_ = null; ctx.wbTeamMemo_ = null; };
+  const run = (fn, ...args) => { fresh(); return ctx[fn](...args); };
+  return { ctx, ss, cache, drafts, triggers, run, fresh, setEmail: (e) => { email = e; } };
 }
 
 /** Apps Script's google.script.run refuses Dates (and some other types) in return values - emulate that check. */

@@ -35,14 +35,16 @@ const INVOICES = [
   ['BBBPB2222B', 'INV-B2', -5, 0, 'Beta', 12000, -1],       // settled yesterday (had a PTP)
   ['CCCPC3333C', 'INV-C1', 15, 8000, 'Gamma', 0, null],     // only not-due
   ['DDDPD4444D', 'INV-D1', -95, 40000, 'Delta', 0, null],   // Ravi's
-  ['DDDPD4444D', 'INV-D2', -20, 10000, 'Delta', 0, null]
+  ['DDDPD4444D', 'INV-D2', -20, 10000, 'Delta', 0, null],
+  ['FFFPF6666F', 'INV-F1', -40, 15000, 'Foxtrot', 0, null]  // on no associate tab (unassigned)
 ];
 const PANS = {
   AAAPA1111A: { cust: 'Alpha Foods Pvt Ltd', owner: 'Asha', exposure: 'Yes' },
   BBBPB2222B: { cust: 'Beta Beverages', owner: 'Asha', exposure: 'No' },
   CCCPC3333C: { cust: 'Gamma Snacks', owner: 'Asha', exposure: 'No' },
   EEEPE5555E: { cust: 'Zero Balance Co', owner: 'Asha', exposure: 'No' },
-  DDDPD4444D: { cust: 'Delta Dairy', owner: 'Ravi', exposure: 'No' }
+  DDDPD4444D: { cust: 'Delta Dairy', owner: 'Ravi', exposure: 'No' },
+  FFFPF6666F: { cust: 'Foxtrot Foods', owner: '', exposure: 'No' }
 };
 
 function buildFixture() {
@@ -72,29 +74,54 @@ function buildFixture() {
     const overdue = total - b[0];
     const gt60 = b[3] + b[4] + b[5] + b[6];
     const netPay = pan === 'BBBPB2222B' ? 25000 : 0;
-    const row = [pan, PANS[pan].cust, 'Brand', "P.Aug'2026", 'kam.mgr', 'kam.one', 'OR', 'No', PANS[pan].exposure, '', 'BU', 'Cat1', 'Cat2',
+    const model = pan === 'CCCPC3333C' ? 'Vendor Does not Exist' : 'OR';
+    const row = [pan, PANS[pan].cust, 'Brand', "P.Aug'2026", 'kam.mgr', 'kam.one', model, 'No', PANS[pan].exposure, '', 'BU', 'Cat1', 'Cat2',
       'Fin', 'NA', ...b, total, overdue, netPay, netPay > 0 ? Math.min(overdue, netPay) : 0, gt60, netPay > 0 ? Math.min(gt60, netPay) : 0,
       'old remark', '', '', '', ''];
     dates.forEach((_, i) => row.push(dailyByOffset[i - 20] || ''));
     return row;
   };
+  // Row 1 carries the SUBTOTAL totals; W1 (index 22) = Total Receivables of the visible rows.
+  const totalRow = (w) => { const r = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'subtotal']; r[22] = w; return r; };
+  // Tabs keep formula rows ready below the last PAN (PAN cell empty).
+  const formulaRow = () => { const r = assocRow('AAAPA1111A', {}); r[0] = ''; r[1] = '#N/A'; for (let i = 15; i < 28; i++) r[i] = 0; r[28] = ''; return r; };
   const sheetAsha = [
-    ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'subtotal'],
+    totalRow(113000),
     assocHdr('Associate Remarks'),
     assocRow('AAAPA1111A', { [-3]: 'Yes', [-1]: 'PTP' }),
     assocRow('BBBPB2222B', { [-10]: 'Yes' }),
     assocRow('CCCPC3333C', { [-1]: 'Invoice Not Due' }),
-    assocRow('EEEPE5555E', {})
+    assocRow('EEEPE5555E', {}),
+    formulaRow(),
+    formulaRow()
   ];
   const sheetRavi = [
-    ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'subtotal'],
+    totalRow(40000), // a filter hides INV-D2's share: the Summary under-reports Ravi
     assocHdr('Remarks'), // Kaushal-style header variant
-    assocRow('DDDPD4444D', { 0: 'Yes' })
+    assocRow('DDDPD4444D', { 0: 'Yes' }),
+    formulaRow()
   ];
 
   // Consolidated
   const cons = [[], ['PAN', 'Customer Name', 'Associate Name']];
-  Object.keys(PANS).forEach((p) => cons.push([p, PANS[p].cust, PANS[p].owner]));
+  Object.keys(PANS).forEach((p) => { if (PANS[p].owner) cons.push([p, PANS[p].cust, p === 'EEEPE5555E' ? 'Ravi' : PANS[p].owner]); });
+
+  // IO Sign Off Rate Card (summary block on the right, as in the live sheet)
+  const ioHdr = ['PAN', 'Customer Name', 'Avg. Invoicing Last 6M (Rs.)', 'Billing Band', 'AR-AP > 50%?', 'IO Sign-off Rate (Rs.)',
+    "Associate Name - Aug'26", "Associate Name - Sept'26", 'IO Sign off Link', 'Remarks', 'Folder Link:', 'IO Signed Brand PDF'];
+  const ioRow = (pan, rate, assoc, link, remarks) => [pan, PANS[pan].cust, '12,34,567', 'B5 - Top', 'No', rate, assoc, assoc, link || '', remarks || '', '', ''];
+  const io = [ioHdr,
+    ioRow('AAAPA1111A', 500, 'Asha', '', 'Sent to brand'),
+    ioRow('BBBPB2222B', 300, 'Asha', 'https://drive.example/io-beta'),
+    ioRow('DDDPD4444D', 200, 'Ravi', '')];
+  io[1] = io[1].concat(['', '', '', '', '', '', 'Sign offs Done', 'Pending IO sign offs']);
+  io[2] = io[2].concat(['', '', '', '', '', '', 1, 2]);
+
+  // Payable Data - Daily: A:D one row per PAN, L:Q one row per vendor code
+  const pay = [['PAN Number', 'PAN Name', 'Net Payable (INR)', 'Business Models', '', '', '', '', '', '', '', 'Vendor Code', 'Vendor Name', 'Business Model', 'Total Payable (INR)', 'Inventory Value - incl. Tax (INR)', 'PAN Number'],
+    ['BBBPB2222B', 'BETA BEVERAGES', 25000, 'OR', '', '', '', '', '', '', '', 'KK-1', 'BETA BEVERAGES - BLR', 'OR', 15000, 0, 'BBBPB2222B'],
+    ['CCCPC3333C', 'GAMMA SNACKS', 7000, 'SOR', '', '', '', '', '', '', '', 'KK-2', 'BETA BEVERAGES - DEL', 'OR', 20000, 500, 'BBBPB2222B'],
+    ['', '', '', '', '', '', '', '', '', '', '', 'KK-3', 'GAMMA SNACKS', 'SOR', 7000, 0, 'CCCPC3333C']];
 
   // PTP Tracker (legacy layout, no PAN column)
   const now = new Date();
@@ -116,7 +143,9 @@ function buildFixture() {
       { name: 'PTP Tracker', rows: ptp },
       { name: 'Asha', rows: sheetAsha },
       { name: 'Ravi', rows: sheetRavi },
+      { name: 'IO Sign Off Rate Card', rows: io },
       { name: 'Imported_Data', rows: invRows },
+      { name: 'Payable Data - Daily', rows: pay },
       { name: 'Hidden Helper', hidden: true, rows: [['x']] }
     ]
   };
