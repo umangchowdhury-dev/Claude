@@ -180,7 +180,7 @@ function load(fixture, opts = {}) {
   const code = fs.readFileSync(path.join(__dirname, '..', 'src', 'Code.gs'), 'utf8');
   vm.runInContext(code, ctx, { filename: 'Code.gs' });
   /** Each google.script.run call is a fresh execution in Apps Script: forget per-execution memos. */
-  const fresh = () => { ctx.wbSettingsMemo_ = null; ctx.wbTeamMemo_ = null; };
+  const fresh = () => { ctx.wbSettingsMemo_ = null; ctx.wbTeamMemo_ = null; ctx.wbMemoStore_ = {}; };
   const run = (fn, ...args) => { fresh(); return ctx[fn](...args); };
   return { ctx, ss, cache, drafts, triggers, run, fresh, setEmail: (e) => { email = e; } };
 }

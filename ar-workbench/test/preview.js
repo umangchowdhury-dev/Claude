@@ -63,7 +63,7 @@ async function main() {
     await page.exposeFunction('__gas', (fn, argsJson) => {
       env.setEmail(email);
       const args = JSON.parse(argsJson);
-      if (fn === 'WB_openFullScreen') return JSON.stringify({ ok: true });
+      if (fn === 'WB_openFullScreen' || fn === 'WB_openWindow') return JSON.stringify({ ok: true });
       if (typeof env.ctx[fn] !== 'function') throw new Error('No server function ' + fn);
       const r = env.run(fn, ...args);
       assertSerializable(r, fn);
@@ -149,6 +149,7 @@ async function main() {
     ['12-reassign', async (p) => { await p.click('#aMore'); await p.click('#mReassign'); await p.click('#fSave'); await waitToast(p, '^1 PAN\\(s\\) moved to'); await idle(p); }],
     ['13-bulk-daily', async (p) => { await p.click('#back'); await p.click('[data-tab=pans]'); await idle(p); await p.click('.bsel'); await p.click('[data-bulk="Yes"]'); await waitToast(p, 'marked'); }],
     ['14-io-tab', async (p) => { await p.click('[data-tab=io]'); await idle(p); await p.click('[data-io="all"]'); await p.click('[data-iopan]'); await p.fill('#fRem', 'Chased brand'); await p.click('#fSave'); await waitToast(p, 'IO'); await idle(p); }],
+    ['14b-settled', async (p) => { await p.click('[data-tab=pans]'); await idle(p); await p.click('tr[data-pan]'); await idle(p); await p.evaluate(() => { document.querySelector('details.sec[data-sec="paid"]').open = true; }); await p.waitForFunction(() => !document.getElementById('paidBody'), null, { timeout: 60000 }); }],
     ['15-team', async (p) => { await p.click('[data-tab=team]'); await idle(p); await p.click('[data-assoc]'); await idle(p); }]
   ]);
   const log = env.ss.getSheetByName('WB Activity Log');

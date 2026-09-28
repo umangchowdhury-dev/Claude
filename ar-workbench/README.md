@@ -55,7 +55,7 @@ v2 merges the **AR Command Center** (`../ar-command-center`) into the workbench.
 - The top 20 overdue PANs.
 - **🩺 Data health checks** (below).
 
-Every view works in the narrow side panel and in the full-screen window (⤢), which shows wide tables.
+**🧾 AR Workbench → Open workbench (large window)** is the main way in. It's a floating window, so you can still click in the sheet behind it; set its size with `WINDOW_SIZE` on WB Settings. Google fixes side panels at 300px, so the side panel stays as a compact option (**Open compact side panel**), with Follow on by default. ⤢ in the panel opens the large window.
 
 ## Data health checks (Overview)
 
@@ -101,7 +101,7 @@ On the 27-Sep export the checks found:
    - Put each person's **e-mail**, and each associate's **Team Lead**.
    - Associate tabs are listed automatically.
    - Until any non-associate role is filled in, everyone sees every view (set-up mode).
-5. Reload the sheet. The **🧾 AR Workbench** menu appears. Choose **Open workbench (side panel)**.
+5. Reload the sheet. The **🧾 AR Workbench** menu appears. Choose **Open workbench (large window)**.
 
 **Upgrading from v1:** replace `Code.gs` and `Workbench.html` and run `WB_setup` again. The activity log and PTP Tracker columns carry over.
 
@@ -118,6 +118,7 @@ On the 27-Sep export the checks found:
 
 | Setting | Default | Meaning |
 |---|---|---|
+| WINDOW_SIZE | 1280x780 | Width × height of the workbench window. Use e.g. `1100x680` on small laptops. |
 | STALE_DAYS | 3 | Working days without Yes / PTP / Expected Payment before an overdue PAN counts as "not followed up". |
 | COVERAGE_TARGET | 80 | The daily coverage goal (%) on Today. |
 | WORK_WEEK | Mon-Sat | Or Mon-Fri. Used for the stale check and month-to-date coverage. |
@@ -131,7 +132,9 @@ On the 27-Sep export the checks found:
 - **Open invoices.** `Imported_Data` has about 66k rows, but only about 3.3k invoices are open. The open set is cached (chunked, shared by everyone) and rebuilt when the sheet's row count changes, every 6 hours, or on ↻.
 - **Your own book** is always read live from your tab: only the fixed columns and the last ~2 months of date columns, down to the last PAN.
 - **Team and overview views** use per-associate caches, at most 30 minutes old and warmed hourly. The view says "as of hh:mm" and has **↻ Live**. A write made through the workbench drops that associate's cache immediately.
-- **PAN lookups.** PANs are found with `TextFinder`. Settled invoices, vendor rows and history are looked up per PAN, so the big tabs are never scanned on a click.
+- **Shared caches.** PTP Tracker, the IO card, Consolidated, Payables (both blocks) and the last 90 days of the activity log are parsed once and cached for everyone. The log cache only fetches rows added since the last read. Any workbench write refreshes the cache it touches.
+- **Opening a PAN** takes about 6 sheet reads (it was about 90 in the first v2): one lookup on the owner's tab plus that row. Settled invoices load only when their section is opened. Start-up is one call.
+- **The one slow load** is the first read of Imported_Data (about 66k rows) after its cache expires. The 07:00 job and the hourly warm-up normally do it before anyone opens the workbench.
 
 ## Limits worth knowing
 
@@ -143,7 +146,7 @@ On the 27-Sep export the checks found:
 
 ```bash
 cd ar-workbench
-TZ=Asia/Kolkata node --test test/*.test.js                   # 34 tests against a synthetic workbook
+TZ=Asia/Kolkata node --test test/*.test.js                   # 36 tests against a synthetic workbook
 TZ=Asia/Kolkata node test/preview.js --synthetic out           # screenshots for associate, team lead, management + every form clicked end to end (Playwright)
 ONLY=associate-sidebar TZ=Asia/Kolkata node test/preview.js --synthetic out   # one persona / mode
 ```

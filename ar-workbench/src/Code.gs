@@ -56,6 +56,7 @@ var WB = {
 };
 
 var WB_SETTINGS_DEFAULTS = [
+  ['WINDOW_SIZE', '1280x780', 'Width x height (px) of the workbench window. Make it smaller on small laptops (e.g. 1100x680).'],
   ['STALE_DAYS', '3', 'A PAN with overdue and no follow-up (Yes / PTP / Expected Payment) for this many working days is "not followed up".'],
   ['COVERAGE_TARGET', '80', 'Daily coverage goal in % (PANs with a balance touched today). Drives the ring on Today.'],
   ['WORK_WEEK', 'Mon-Sat', 'Mon-Sat or Mon-Fri. Used for the "not followed up" check and coverage averages.'],
@@ -114,8 +115,8 @@ var WB_OPEN_FIELDS = ['pan', 'month', 'invDate', 'dueDate', 'credit', 'inv', 'cu
 function WB_onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🧾 AR Workbench')
-    .addItem('Open workbench (side panel)', 'WB_openSidebar')
-    .addItem('Open full-screen workbench', 'WB_openFullScreen')
+    .addItem('Open workbench (large window)', 'WB_openWindow')
+    .addItem('Open compact side panel', 'WB_openSidebar')
     .addItem('Open selected PAN', 'WB_openSelectedPan')
     .addSeparator()
     .addItem('Refresh data now', 'WB_refreshNow')
@@ -158,12 +159,19 @@ function WB_openSidebar() {
   SpreadsheetApp.getUi().showSidebar(t.evaluate().setTitle('AR Workbench'));
 }
 
-function WB_openFullScreen(pan) {
+/**
+ * The main workbench: a large floating window. It is modeless, so the sheet stays clickable behind it
+ * (Google fixes the side panel at 300 px; a dialog can be as wide as the screen). Size: WINDOW_SIZE setting.
+ */
+function WB_openWindow(pan) {
   var t = HtmlService.createTemplateFromFile('Workbench');
   t.mode = 'full';
   t.startPan = typeof pan === 'string' ? pan : '';
-  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(1360).setHeight(860), 'AR Workbench');
+  var m = /^(\d{3,4})\s*[x×]\s*(\d{3,4})$/.exec(String(wbSettings_().WINDOW_SIZE || '').trim()) || [0, 1280, 780];
+  SpreadsheetApp.getUi().showModelessDialog(t.evaluate().setWidth(Number(m[1])).setHeight(Number(m[2])), 'AR Workbench');
 }
+/** Kept for menus / buttons installed by earlier versions. */
+function WB_openFullScreen(pan) { WB_openWindow(pan); }
 
 function WB_openSelectedPan() {
   var sel = wbGetSelection();
@@ -171,7 +179,7 @@ function WB_openSelectedPan() {
     SpreadsheetApp.getUi().alert('Select any cell on a PAN row first (your tab, Consolidated, PTP Tracker, IO rate card, Imported_Data or Payables).');
     return;
   }
-  WB_openFullScreen(sel.pan);
+  WB_openWindow(sel.pan);
 }
 
 function WB_refreshNow() {
@@ -218,6 +226,33 @@ function wbInit() {
     signature: cfg.EMAIL_SIGNATURE || 'Accounts Receivable',
     user: info.email
   };
+}
+
+/**
+ * Start-up in one round trip: session info + the first book (with its PTPs).
+ * savedKey = the view the user picked last time ('a:Name' | 't:Lead' | 'all'), kept in the browser.
+ */
+function wbBoot(savedKey) {
+  var init = wbInit();
+  var key = '';
+  if (init.role === 'Associate') key = init.me ? 'a:' + init.me : '';
+  else if (init.role === 'Team Lead') key = 't:' + init.me;
+  else key = init.me && init.associates.indexOf(init.me) >= 0 ? 'a:' + init.me : 'all';
+  if (init.role !== 'Associate' && /^(a:|t:|all$)/.test(savedKey || '')) {
+    var ok = savedKey === 'all' ? init.role !== 'Team Lead' || !init.restrict
+      : savedKey.indexOf('a:') === 0 ? init.associates.indexOf(savedKey.slice(2)) >= 0
+      : init.teamLeads.indexOf(savedKey.slice(2)) >= 0;
+    if (ok) key = savedKey;
+  }
+  var out = { init: init, key: key, book: null };
+  if (key) {
+    try { out.book = wbGetBook(wbScopeOf_(key)); } catch (e) { out.bookError = e.message; }
+  }
+  return out;
+}
+
+function wbScopeOf_(key) {
+  return key === 'all' ? { all: true } : key.indexOf('t:') === 0 ? { teamLead: key.slice(2) } : { assoc: key.slice(2) };
 }
 
 function wbSetMe(name) {
@@ -315,7 +350,8 @@ function wbGetBook(scope) {
   var today = wbKey_(new Date());
   var single = names.length === 1;
   var books = wbBooks_(names, single);
-  var ptpBy = wbPtpRollup_(wbReadPtp_(ss).rows, today);
+  var ptp = wbReadPtp_(ss);
+  var ptpBy = wbPtpRollup_(ptp.rows, today);
   var io = wbReadIo_(ss);
   var nextFu = wbNextFollowUps_(ss);
   var rows = [];
@@ -333,7 +369,8 @@ function wbGetBook(scope) {
       rows.push(wbListRow_(r));
     });
   });
-  return { scope: scope || {}, names: names, today: today, rows: rows, builtAt: builtAt, live: single, zeroRows: zeroRows };
+  return { scope: scope || {}, names: names, today: today, rows: rows, builtAt: builtAt, live: single, zeroRows: zeroRows,
+    ptps: wbPtpList_(ptp.rows, names, today) };
 }
 
 /** A book row for lists: long text trimmed (the PAN view shows everything in full). */
@@ -402,12 +439,17 @@ function wbGetPan(pan) {
     payables: wbPayablesOf_(ss, pan),
     kams: kams,
     kamMgrs: kamMgrs,
-    paid: wbRecentPaid_(ss, pan, 15),
+    paid: null, // loaded when the section is opened (wbGetPaid)
     history: wbHistory_(ss, pan, 50),
     customer: (header && header.customer && header.customer !== '#N/A' ? header.customer : '') ||
       (open[0] && open[0].cust) || (ioRec && ioRec.customer) || '',
     canTl: info.role !== 'Associate'
   };
+}
+
+/** Recently settled invoices of a PAN - loaded only when the associate opens that section. */
+function wbGetPaid(pan) {
+  return { pan: pan, paid: wbRecentPaid_(SpreadsheetApp.getActive(), String(pan || '').trim(), 15) };
 }
 
 // ---------------------------------------------------------------------------
@@ -633,6 +675,7 @@ function wbSaveIo(payload) {
     wbLog_(ss, { assoc: owner, pan: pan, customer: payload.customer, type: 'IO',
       outcome: payload.signed ? 'IO signed' + (payload.signedOn ? ' on ' + wbFmtDate_(payload.signedOn) : '') : 'IO marked pending',
       remarks: [payload.remarks, payload.signed ? payload.link : ''].filter(String).join(' | ') });
+    wbDropCache_('io');
     return { ok: true };
   });
 }
@@ -674,6 +717,7 @@ function wbReassign(pans, newOwner) {
         if (v !== '' || k === 'poe') target.getRange(row, tH[k] + 1).setValue(v);
       });
       if (fromRow) {
+        delete wbMemoStore_['row|' + from + '|' + pan];
         fromSh.getRange(fromRow, 1).setValue('');
         var fH2 = wbHeaderIndex_(fromSh.getRange(2, 1, 1, fromSh.getLastColumn()).getValues()[0]);
         keys.forEach(function (k) { if (fH2[k] !== undefined) fromSh.getRange(fromRow, fH2[k] + 1).setValue(''); });
@@ -684,7 +728,7 @@ function wbReassign(pans, newOwner) {
       moved.push(pan);
     });
     wbDropBook_(newOwner);
-    CacheService.getScriptCache().remove('wb_owner_idx');
+    wbDropOwners_();
     return { ok: true, count: moved.length };
   });
 }
@@ -755,12 +799,19 @@ function wbGetPtps(scope) {
   var ss = SpreadsheetApp.getActive();
   var names = wbScopeNames_(scope, wbRoleInfo_());
   var today = wbKey_(new Date());
-  var rows = wbReadPtp_(ss).rows.filter(function (p) {
+  return wbPtpList_(wbReadPtp_(ss).rows, names, today);
+}
+
+/** PTP Tracker rows of these associates that carry a PTP, a tag or a non-default status, with live status. */
+function wbPtpList_(all, names, today) {
+  var rows = all.filter(function (p) {
     return names.indexOf(p.associate) >= 0 && (p.ptpDate || p.tag || (p.status && p.status !== 'PTP Pending'));
-  });
-  rows.forEach(function (p) {
-    p.live = wbPtpStatus_(p.ptpDate, p.outstanding, p.added, p.settlement);
-    if (p.ptpDate && p.outstanding > 0) p.daysLate = p.ptpDate < today ? wbDiffDays_(p.ptpDate, today) : 0;
+  }).map(function (p) {
+    var o = {};
+    Object.keys(p).forEach(function (k) { o[k] = p[k]; });
+    o.live = wbPtpStatus_(p.ptpDate, p.outstanding, p.added, p.settlement);
+    if (p.ptpDate && p.outstanding > 0) o.daysLate = p.ptpDate < today ? wbDiffDays_(p.ptpDate, today) : 0;
+    return o;
   });
   rows.sort(function (a, b) { return (a.ptpDate || '9999') < (b.ptpDate || '9999') ? -1 : 1; });
   return { today: today, rows: rows };
@@ -905,7 +956,7 @@ function wbGetOverview(force) {
   var info = wbRoleInfo_();
   if (info.role === 'Associate' || info.role === 'Team Lead') throw new Error('The overview is for management');
   var names = wbAssociateSheets_(ss).map(function (s) { return s.getName(); });
-  if (force) { names.forEach(wbDropBook_); CacheService.getScriptCache().remove('wb_owner_idx'); }
+  if (force) { names.forEach(wbDropBook_); wbDropOwners_(); }
   var books = wbBooks_(names, false);
   var today = wbKey_(new Date());
   var monthStart = today.slice(0, 8) + '01';
@@ -1045,6 +1096,7 @@ function WB_refreshPtpStatuses(addMissing) {
       }
     });
     if (data.length && JSON.stringify(data) !== before) sh.getRange(2, 1, data.length, lastCol).setValues(data);
+    wbDropCache_('ptp');
     if (addMissing === true) {
       var owners = wbOwnerIndex_(true).byPan;
       var add = [];
@@ -1061,6 +1113,7 @@ function WB_refreshPtpStatuses(addMissing) {
         add.push(row);
       });
       if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, lastCol).setValues(add);
+      wbDropCache_('ptp');
     }
   } finally {
     lock.releaseLock();
@@ -1075,6 +1128,12 @@ function WB_warmCaches() {
   wbBooks_(names, false);
   wbOwnerIndex_(true);
   wbOpenInvoices_(false);
+  ['ptp', 'io', 'cons'].forEach(wbDropCache_);
+  wbReadPtp_(ss);
+  wbReadIo_(ss);
+  wbConsolidated_(ss);
+  wbPayIndex_(ss);
+  wbReadLogTail_(ss, wbKey_(new Date()));
 }
 
 /** 22:00: one row per associate into WB Snapshots (trend history for the overview). */
@@ -1540,7 +1599,10 @@ function wbPanRow_(sh, pan) {
 
 function wbFindRow_(sh, pan) {
   if (!sh || sh.getLastRow() < 3) return 0;
+  var k = 'row|' + sh.getName() + '|' + pan;
+  if (wbMemoStore_[k]) return wbMemoStore_[k]; // same execution: found a moment ago (writes never move rows)
   var f = sh.getRange(3, 1, sh.getLastRow() - 2, 1).createTextFinder(pan).matchEntireCell(true).findNext();
+  if (f) wbMemoStore_[k] = f.getRow();
   return f ? f.getRow() : 0;
 }
 
@@ -1556,10 +1618,10 @@ function wbFreeRow_(sh) {
 
 /** PAN -> [{assoc, row}] from column A of every associate tab (cached 10 min). */
 function wbOwnerIndex_(force) {
-  var cache = CacheService.getScriptCache();
   if (!force) {
-    var hit = cache.get('wb_owner_idx');
-    if (hit) return JSON.parse(hit);
+    if (wbMemoStore_.owners) return wbMemoStore_.owners;
+    var hit = wbCacheGet_('wb_owner_idx');
+    if (hit) return (wbMemoStore_.owners = hit);
   }
   var ss = SpreadsheetApp.getActive();
   var byPan = {};
@@ -1572,7 +1634,8 @@ function wbOwnerIndex_(force) {
     });
   });
   var out = { byPan: byPan, builtAt: new Date().toISOString() };
-  try { cache.put('wb_owner_idx', JSON.stringify(out), 600); } catch (e) { /* too big: skip cache */ }
+  wbCachePut_('wb_owner_idx', out, 600); // ~120 kB for 3k PANs: chunked (a single cache value is capped at 100 kB)
+  wbMemoStore_.owners = out;
   return out;
 }
 
@@ -1586,11 +1649,21 @@ function wbOwnersOf_(pan) {
   if (ok.length) return ok;
   var found = [];
   wbAssociateSheets_(ss).forEach(function (sh) { if (wbFindRow_(sh, pan)) found.push(sh.getName()); });
-  if (found.length) CacheService.getScriptCache().remove('wb_owner_idx');
+  if (found.length) wbDropOwners_();
   return found;
 }
 
 function wbConsolidated_(ss) {
+  return wbMemo_('cons', function () {
+    var hit = wbCacheGet_(WB.CACHE_PREFIX + 'cons');
+    if (hit) return hit;
+    var fresh = wbReadConsolidated_(ss);
+    wbCachePut_(WB.CACHE_PREFIX + 'cons', fresh, 1800);
+    return fresh;
+  });
+}
+
+function wbReadConsolidated_(ss) {
   var sh = ss.getSheetByName(WB.SHEET_CONSOLIDATED);
   var out = { byPan: {} };
   if (!sh || sh.getLastRow() < 3) return out;
@@ -1613,6 +1686,7 @@ function wbSetConsolidatedOwner_(ss, pan, owner) {
     sh.getRange(r, 1).setValue(pan);
   }
   sh.getRange(r, 3).setValue(owner);
+  wbDropCache_('cons');
 }
 
 /**
@@ -1746,11 +1820,21 @@ function wbRecentPaid_(ss, pan, limit) {
   if (inv.sh.getLastRow() < inv.first) return [];
   var cells = inv.sh.getRange(inv.first, inv.C.pan + 1, inv.sh.getLastRow() - inv.first + 1, 1)
     .createTextFinder(pan).matchEntireCell(true).findAll();
-  var rows = cells.map(function (c) { return c.getRow(); }).sort(function (a, b) { return b - a; });
+  var rows = cells.map(function (c) { return c.getRow(); }).sort(function (a, b) { return b - a; }).slice(0, limit * 4);
+  if (!rows.length) return [];
+  // Rows are appended chronologically: take the newest. Read them in one block when they sit close together.
+  var lo = rows[rows.length - 1];
+  var hi = rows[0];
+  var get;
+  if (hi - lo < 4000) {
+    var block = inv.sh.getRange(lo, 1, hi - lo + 1, inv.width).getValues();
+    get = function (r) { return block[r - lo]; };
+  } else {
+    get = function (r) { return inv.sh.getRange(r, 1, 1, inv.width).getValues()[0]; };
+  }
   var out = [];
-  // Rows are appended chronologically, so walk from the bottom.
-  for (var i = 0; i < rows.length && out.length < limit && i < limit * 4; i++) {
-    var rec = wbInvRecord_(inv.sh.getRange(rows[i], 1, 1, inv.width).getValues()[0], inv.C);
+  for (var i = 0; i < rows.length && out.length < limit; i++) {
+    var rec = wbInvRecord_(get(rows[i]), inv.C);
     if (rec.net === 0 && rec.inv) out.push(rec);
   }
   return out;
@@ -1765,23 +1849,39 @@ function wbRecentPaid_(ss, pan, limit) {
  * and L:Q one row per vendor code (Vendor Code, Vendor Name, Business Model, Total Payable, Inventory, PAN Number).
  */
 function wbPayablesOf_(ss, pan) {
-  var sh = ss.getSheetByName(WB.SHEET_PAY);
-  var out = { found: false, name: '', net: 0, model: '', vendors: [] };
-  if (!sh || sh.getLastRow() < 2) return out;
-  var n = sh.getLastRow() - 1;
-  var f = sh.getRange(2, 1, n, 1).createTextFinder(pan).matchEntireCell(true).findNext();
-  if (f) {
-    var v = sh.getRange(f.getRow(), 1, 1, 4).getValues()[0];
-    out.found = true; out.name = wbStr_(v[1]); out.net = Number(v[2]) || 0; out.model = wbStr_(v[3]);
-  }
-  if (sh.getLastColumn() >= 17) {
-    sh.getRange(2, 17, n, 1).createTextFinder(pan).matchEntireCell(true).findAll().slice(0, 60).forEach(function (c) {
-      var x = sh.getRange(c.getRow(), 12, 1, 6).getValues()[0];
-      out.vendors.push({ code: wbStr_(x[0]), name: wbStr_(x[1]), model: wbStr_(x[2]), payable: Number(x[3]) || 0, inventory: Number(x[4]) || 0 });
-    });
-    out.vendors.sort(function (a, b) { return b.payable - a.payable; });
-  }
+  var idx = wbPayIndex_(ss);
+  var s = idx.pan[pan];
+  var out = { found: !!s, name: s ? s[0] : '', net: s ? s[1] : 0, model: s ? s[2] : '', vendors: [] };
+  (idx.vendors[pan] || []).slice(0, 60).forEach(function (x) {
+    out.vendors.push({ code: x[0], name: x[1], model: x[2], payable: x[3], inventory: x[4] });
+  });
+  out.vendors.sort(function (a, b) { return b.payable - a.payable; });
   return out;
+}
+
+/** Whole Payables tab in one read, indexed by PAN; cached until its row count changes (or 6 h). */
+function wbPayIndex_(ss) {
+  return wbMemo_('pay', function () {
+    var sh = ss.getSheetByName(WB.SHEET_PAY);
+    var empty = { pan: {}, vendors: {}, lastRow: 0 };
+    if (!sh || sh.getLastRow() < 2) return empty;
+    var lastRow = sh.getLastRow();
+    var hit = wbCacheGet_(WB.CACHE_PREFIX + 'pay');
+    if (hit && hit.lastRow === lastRow) return hit;
+    var width = Math.min(sh.getLastColumn(), 17);
+    var vals = sh.getRange(2, 1, lastRow - 1, width).getValues();
+    var out = { pan: {}, vendors: {}, lastRow: lastRow };
+    vals.forEach(function (r, i) {
+      var p = wbStr_(r[0]);
+      if (p && !out.pan[p]) out.pan[p] = [wbStr_(r[1]), wbNum_(r[2]), wbStr_(r[3]), i + 2];
+      if (width >= 17) {
+        var vp = wbStr_(r[16]);
+        if (vp) (out.vendors[vp] = out.vendors[vp] || []).push([wbStr_(r[11]), wbStr_(r[12]), wbStr_(r[13]), wbNum_(r[14]), wbNum_(r[15])]);
+      }
+    });
+    wbCachePut_(WB.CACHE_PREFIX + 'pay', out, WB.CACHE_TTL);
+    return out;
+  });
 }
 
 function wbIoCols_(hdr) {
@@ -1805,8 +1905,22 @@ function wbIoCols_(hdr) {
   };
 }
 
-/** IO Sign Off Rate Card -> {byPan, rows}. Signed = "IO Sign off Link" is filled. */
+/** IO Sign Off Rate Card -> {byPan, rows}. Signed = "IO Sign off Link" is filled. Cached 10 min, dropped on save. */
 function wbReadIo_(ss) {
+  return wbMemo_('io', function () {
+    var hit = wbCacheGet_(WB.CACHE_PREFIX + 'io');
+    var rows = hit ? wbUnpack_(hit) : null;
+    if (!rows) {
+      rows = wbReadIoSheet_(ss).rows;
+      wbCachePut_(WB.CACHE_PREFIX + 'io', wbPack_(rows), 600);
+    }
+    var byPan = {};
+    rows.forEach(function (r) { byPan[r.pan] = r; });
+    return { byPan: byPan, rows: rows };
+  });
+}
+
+function wbReadIoSheet_(ss) {
   var sh = ss.getSheetByName(WB.SHEET_IO);
   var out = { byPan: {}, rows: [] };
   if (!sh || sh.getLastRow() < 2) return out;
@@ -1893,7 +2007,18 @@ function wbAddHeaders_(sh, headers, minCols) {
   sh.getRange(1, lastFilled + 1, 1, missing.length).setValues([missing]).setFontWeight('bold').setBackground('#e8f0fe');
 }
 
+/** PTP Tracker, parsed. Cached (10 min, dropped on every workbench write to the tracker). */
 function wbReadPtp_(ss) {
+  return wbMemo_('ptp', function () {
+    var hit = wbCacheGet_(WB.CACHE_PREFIX + 'ptp');
+    if (hit) return { rows: wbUnpack_(hit.rows), H: hit.H };
+    var fresh = wbReadPtpSheet_(ss);
+    wbCachePut_(WB.CACHE_PREFIX + 'ptp', { rows: wbPack_(fresh.rows), H: fresh.H }, 600);
+    return fresh;
+  });
+}
+
+function wbReadPtpSheet_(ss) {
   var sh = ss.getSheetByName(WB.SHEET_PTP);
   if (!sh || sh.getLastRow() < 2) return { rows: [], H: {} };
   var lastCol = sh.getLastColumn();
@@ -1955,6 +2080,7 @@ function wbUpsertPtp_(ss, updates) {
     }
   });
   if (appends.length) sh.getRange(sh.getLastRow() + 1, 1, appends.length, lastCol).setValues(appends);
+  wbDropCache_('ptp');
 }
 
 /** Live PTP status. Legacy hand-typed statuses ("Settled", "PTP Breached") are respected when no date is set. */
@@ -2105,13 +2231,8 @@ function wbHealth_(ss, books, names) {
 
   // 5. "Vendor Does not Exist" although the PAN is in Payables (lookup range too short).
   var pay = {};
-  var psh = ss.getSheetByName(WB.SHEET_PAY);
-  if (psh && psh.getLastRow() >= 2) {
-    psh.getRange(2, 1, psh.getLastRow() - 1, 3).getValues().forEach(function (r, i) {
-      var p = wbStr_(r[0]);
-      if (p && !pay[p]) pay[p] = { row: i + 2, net: wbNum_(r[2]) };
-    });
-  }
+  var pidx = wbPayIndex_(ss).pan;
+  Object.keys(pidx).forEach(function (p) { pay[p] = { row: pidx[p][3], net: pidx[p][1] }; });
   var vendorMiss = [];
   names.forEach(function (n) {
     ((books[n] || {}).rows || []).forEach(function (r) {
@@ -2288,8 +2409,37 @@ function wbLogRow_(r) {
   };
 }
 
-/** Log rows from the bottom up until the date drops below sinceKey (the log is append-only, oldest first). */
+/**
+ * The last 90 days of the activity log, cached and topped up incrementally (only rows added since the last read
+ * are fetched). Returns entries on/after sinceKey, oldest first.
+ */
 function wbReadLogTail_(ss, sinceKey) {
+  var all = wbMemo_('logtail', function () {
+    var sh = ss.getSheetByName(WB.SHEET_LOG);
+    if (!sh || sh.getLastRow() < 2) return [];
+    var lastRow = sh.getLastRow();
+    var floor = wbAddDays_(wbKey_(new Date()), -90);
+    var hit = wbCacheGet_(WB.CACHE_PREFIX + 'logtail');
+    var rows;
+    if (hit && hit.lastRow <= lastRow && hit.floor === floor) {
+      rows = hit.rows;
+      if (lastRow > hit.lastRow) {
+        sh.getRange(hit.lastRow + 1, 1, lastRow - hit.lastRow, WB.LOG_HEADERS.length).getValues()
+          .forEach(function (r) { rows.push(wbLogRow_(r)); });
+      }
+    } else {
+      rows = wbReadLogBack_(ss, floor);
+    }
+    rows = rows.filter(function (l) { return !l.date || l.date >= floor; });
+    wbCachePut_(WB.CACHE_PREFIX + 'logtail', { lastRow: lastRow, floor: floor, rows: rows }, 3600);
+    return rows;
+  });
+  if (sinceKey >= wbAddDays_(wbKey_(new Date()), -90)) return all.filter(function (l) { return !l.date || l.date >= sinceKey; });
+  return wbReadLogBack_(ss, sinceKey);
+}
+
+/** Log rows from the bottom up until the date drops below sinceKey (the log is append-only, oldest first). */
+function wbReadLogBack_(ss, sinceKey) {
   var sh = ss.getSheetByName(WB.SHEET_LOG);
   if (!sh || sh.getLastRow() < 2) return [];
   var out = [];
@@ -2310,12 +2460,10 @@ function wbReadLogTail_(ss, sinceKey) {
   return out.reverse();
 }
 
+/** Activity on a PAN over the last 90 days, newest first (from the cached log tail - no extra sheet reads). */
 function wbHistory_(ss, pan, limit) {
-  var sh = ss.getSheetByName(WB.SHEET_LOG);
-  if (!sh || sh.getLastRow() < 2) return [];
-  var cells = sh.getRange(2, 4, sh.getLastRow() - 1, 1).createTextFinder(pan).matchEntireCell(true).findAll();
-  var rows = cells.map(function (c) { return c.getRow(); }).sort(function (a, b) { return b - a; }).slice(0, limit);
-  return rows.map(function (r) { return wbLogRow_(sh.getRange(r, 1, 1, WB.LOG_HEADERS.length).getValues()[0]); });
+  return wbReadLogTail_(ss, wbAddDays_(wbKey_(new Date()), -90))
+    .filter(function (l) { return l.pan === pan; }).reverse().slice(0, limit);
 }
 
 /** Latest "next follow-up" date per PAN from the last 60 days of the log (later entries override earlier ones). */
@@ -2355,12 +2503,39 @@ function wbCacheGet_(key) {
   try { return JSON.parse(keys.map(function (k) { return got[k]; }).join('')); } catch (e) { return null; }
 }
 
+function wbDropOwners_() {
+  delete wbMemoStore_.owners;
+  CacheService.getScriptCache().remove('wb_owner_idx_meta');
+}
+
+/** Per-execution memo so one call never parses the same tab twice. */
+var wbMemoStore_ = {};
+function wbMemo_(k, fn) {
+  if (!(k in wbMemoStore_)) wbMemoStore_[k] = fn();
+  return wbMemoStore_[k];
+}
+function wbDropCache_(k) {
+  delete wbMemoStore_[k];
+  CacheService.getScriptCache().remove(WB.CACHE_PREFIX + k + '_meta');
+}
+/** Array of flat objects -> {f: fields, r: rows as arrays} (about half the size in the cache). */
+function wbPack_(list) {
+  var f = [];
+  list.forEach(function (o) { Object.keys(o).forEach(function (k) { if (f.indexOf(k) < 0) f.push(k); }); });
+  return { f: f, r: list.map(function (o) { return f.map(function (k) { return o[k] === undefined ? null : o[k]; }); }) };
+}
+function wbUnpack_(p) {
+  if (!p || !p.f) return null;
+  return p.r.map(function (a) { var o = {}; p.f.forEach(function (k, i) { if (a[i] !== null) o[k] = a[i]; }); return o; });
+}
+
 function wbClearCaches_() {
   var ss = SpreadsheetApp.getActive();
   var cache = CacheService.getScriptCache();
   cache.remove('wb_assoc_list');
-  cache.remove('wb_owner_idx');
+  wbDropOwners_();
   cache.remove(WB.CACHE_PREFIX + 'open_meta');
+  ['ptp', 'io', 'cons', 'pay', 'logtail'].forEach(function (k) { wbDropCache_(k); });
   ss.getSheets().forEach(function (s) { cache.remove(WB.BOOK_PREFIX + s.getName() + '_meta'); });
   wbSettingsMemo_ = null;
   wbTeamMemo_ = null;

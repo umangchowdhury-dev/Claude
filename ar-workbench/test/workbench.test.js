@@ -175,7 +175,8 @@ test('wbGetPan drills down to invoices, IO, payables and history', () => {
   assert.equal(d.invoices[0].overdue, true);
   assert.equal(d.invoices[2].overdue, false, 'not-due invoice');
   assert.equal(d.invoices[0].ptpStatus, 'PTP Pending');
-  assert.deepEqual(d.paid.map((p) => p.inv), ['INV-A0']);
+  assert.equal(d.paid, null, 'settled invoices load only when their section is opened');
+  assert.deepEqual(call(env, 'wbGetPaid', 'AAAPA1111A').paid.map((p) => p.inv), ['INV-A0']);
   assert.equal(d.header.daily14.length, 14);
   assert.equal(d.io.rate, 500);
   assert.equal(d.io.done, false);
@@ -495,7 +496,7 @@ test('WB_setup is idempotent: tabs, headers, settings and triggers once', () => 
   assert.deepEqual(env.ss.getSheetByName('IO Sign Off Rate Card').data[0].filter(Boolean).slice(12), ['IO Signed On', 'IO Updated By']);
   const set = env.ss.getSheetByName('WB Settings').data;
   assert.deepEqual(set.slice(3).map((r) => r[0]).filter(Boolean), ['Asha', 'Ravi']);
-  assert.equal(set.slice(3).filter((r) => r[6]).length, 8, 'every setting listed once');
+  assert.equal(set.slice(3).filter((r) => r[6]).length, 9, 'every setting listed once');
   assert.ok(env.ss.getSheetByName('WB Activity Log'));
   assert.ok(env.ss.getSheetByName('WB Snapshots'));
 });
@@ -606,4 +607,33 @@ test('wbGoToRow selects the PAN row in the owner tab', () => {
   assert.equal(sel.sheet, 'Ravi');
   assert.equal(sel.pan, 'DDDPD4444D');
   assert.equal(call(env, 'wbGoToRow', 'NOPEX0000X').ok, false);
+});
+
+test('wbBoot returns session info and the first book in one call', () => {
+  const env = withRoles(fresh());
+  let b = call(env, 'wbBoot', '');
+  assert.equal(b.key, 'a:Asha');
+  assert.equal(b.init.me, 'Asha');
+  assert.equal(b.book.rows.length, 4);
+  assert.ok(Array.isArray(b.book.ptps.rows), 'PTPs come with the book');
+  assert.equal(call(env, 'wbBoot', 'a:Ravi').key, 'a:Asha', 'associates always start on their own book');
+  env.setEmail('tara@example.com');
+  b = call(env, 'wbBoot', '');
+  assert.equal(b.key, 't:Tara');
+  assert.deepEqual(b.book.names, ['Asha', 'Ravi']);
+  assert.equal(call(env, 'wbBoot', 'a:Ravi').key, 'a:Ravi', 'team leads return to the view they left');
+  assert.equal(call(env, 'wbBoot', 'a:Nobody').key, 't:Tara', 'unknown saved view falls back');
+});
+
+test('cached tabs are refreshed by workbench writes (PTP, IO, log)', () => {
+  const env = fresh();
+  call(env, 'wbGetPan', 'AAAPA1111A'); // warm the caches
+  call(env, 'wbSavePtp', { pan: 'AAAPA1111A', invoices: ['INV-A3'], ptpDate: key(day(6)) });
+  call(env, 'wbSaveIo', { pan: 'AAAPA1111A', signed: true, link: 'https://drive.example/x' });
+  const d = call(env, 'wbGetPan', 'AAAPA1111A');
+  assert.equal(d.invoices.find((i) => i.inv === 'INV-A3').ptpDate, key(day(6)));
+  assert.equal(d.io.done, true);
+  assert.deepEqual(d.history.map((h) => h.type), ['IO', 'PTP'], 'log tail picks up new rows');
+  env.ss.getSheetByName('WB Activity Log').appendRow([new Date(), new Date(), 'Asha', 'AAAPA1111A', '', 'Call', 'typed in the sheet']);
+  assert.equal(call(env, 'wbGetPan', 'AAAPA1111A').history[0].outcome, 'typed in the sheet', 'rows added outside the workbench too');
 });

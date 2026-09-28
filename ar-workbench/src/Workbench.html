@@ -163,7 +163,7 @@
   .detail-grid { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
   .detail-grid > div, .cols2 > div, .cols3 > div, .grid > * { min-width: 0; }
   .bulkptp select { max-width: 100%; min-width: 0; flex: 1 1 140px; }
-  .full .detail-grid { grid-template-columns: 390px minmax(0, 1fr); align-items: start; }
+  .full .detail-grid { grid-template-columns: 360px minmax(0, 1fr); align-items: start; }
   .sec { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; box-shadow: var(--shadow); overflow: hidden; }
   .sec > summary { list-style: none; cursor: pointer; padding: 9px 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
   .sec > summary::-webkit-details-marker { display: none; }
@@ -246,7 +246,7 @@
     <button class="icon-btn" id="searchBtn" title="Search any PAN, customer, brand or invoice (Ctrl+K)">🔍</button>
     <button class="icon-btn" id="followBtn" title="Follow: click a PAN row in the sheet to open it here">🎯</button>
     <button class="icon-btn" id="refreshBtn" title="Reload data">↻</button>
-    <button class="icon-btn" id="expandBtn" title="Open full screen">⤢</button>
+    <button class="icon-btn" id="expandBtn" title="Open the large workbench window">⤢</button>
   </div>
   <nav class="tabs" id="tabs"></nav>
 </div>
@@ -260,7 +260,7 @@
   var START_PAN = document.body.getAttribute('data-pan') || '';
   if (MODE === 'full') document.body.classList.add('full');
   if (MODE === 'full') document.getElementById('expandBtn').classList.add('hidden');
-  if (MODE !== 'sidebar') document.getElementById('followBtn').classList.add('hidden');
+
 
   var S = {
     init: null, scope: null, scopeKey: '', tab: 'today', book: null, ptps: null, io: null, stats: null, team: null, overview: null,
@@ -368,9 +368,12 @@
   }
 
   // ---------- boot ----------
-  call('wbInit').then(function (init) {
+  call('wbBoot', store('scope') || '').then(function (boot) {
+    var init = boot.init;
     S.init = init;
-    buildScope();
+    buildScope(boot.key);
+    if (boot.book && S.scopeKey === boot.key) { S.book = boot.book; S.ptps = boot.book.ptps; }
+    if (boot.bookError) toast(boot.bookError, true);
     buildTabs();
     var rc = $('roleChip');
     rc.textContent = init.role === 'Admin' && !init.rolesConfigured ? 'Set-up' : init.role;
@@ -378,6 +381,7 @@
     $('scope').title = 'Signed in as ' + (init.email || 'unknown') + ' · ' + init.role;
     $('followBtn').classList.toggle('on', S.follow);
     if (S.follow) poll();
+    if (S.book) badges();
     if (START_PAN) { openPan(START_PAN); return; }
     go(S.scope ? 'today' : 'today');
   }).catch(fail);
@@ -401,15 +405,12 @@
     i.associates.forEach(function (a) { o.push(['a:' + a, a]); });
     return o;
   }
-  function buildScope() {
+  function buildScope(key) {
     var opts = scopeOptions();
-    var saved = store('scope');
-    var i = S.init;
-    var def = i.role === 'Associate' ? (i.me ? 'a:' + i.me : '') : i.role === 'Team Lead' ? 't:' + i.me : (i.me && i.associates.indexOf(i.me) >= 0 ? 'a:' + i.me : 'all');
-    var key = opts.some(function (o) { return o[0] === saved; }) && i.role !== 'Associate' ? saved : def;
     if (!opts.some(function (o) { return o[0] === key; })) key = opts[0][0];
     $('scope').innerHTML = opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === key ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('');
     setScope(key, true);
+    if (key) store('scope', key);
     $('scope').onchange = function () {
       setScope(this.value);
       if (this.value.indexOf('a:') === 0 && S.init.role === 'Associate') call('wbSetMe', this.value.slice(2));
@@ -447,7 +448,7 @@
     loading('Refreshing data…');
     call('wbRefresh').then(function (r) { toast('Refreshed · ' + r.invoices + ' open invoices'); if (S.pan) openPan(S.pan); else go(S.tab, true); }).catch(fail);
   };
-  $('expandBtn').onclick = function () { google.script.run.WB_openFullScreen(S.pan || ''); };
+  $('expandBtn').onclick = function () { google.script.run.WB_openWindow(S.pan || ''); };
   $('searchBtn').onclick = searchForm;
   $('followBtn').onclick = function () {
     S.follow = !S.follow;
@@ -510,9 +511,7 @@
   function ensureBook() {
     if (S.book) return Promise.resolve();
     loading('Loading ' + ($('scope').selectedOptions[0] || {}).text + '…');
-    return Promise.all([call('wbGetBook', S.scope), call('wbGetPtps', S.scope)]).then(function (r) {
-      S.book = r[0]; S.ptps = r[1]; badges();
-    });
+    return call('wbGetBook', S.scope).then(function (b) { S.book = b; S.ptps = b.ptps; badges(); });
   }
   function ensurePtps() { return S.ptps && S.book ? Promise.resolve() : ensureBook(); }
   function badges() {
@@ -749,7 +748,8 @@
   function openPan(pan) {
     S.pan = pan; S.sel = {}; S.invFilter = 'all'; setTabs();
     closeModal();
-    loading('Opening ' + pan + ' · pulling invoices…');
+    var known = S.book && S.book.rows.filter(function (r) { return r.pan === pan; })[0];
+    loading('Opening ' + (known ? known.customer + ' (' + pan + ')' : pan) + '…');
     call('wbGetPan', pan).then(function (d) {
       if (S.pan !== pan) return;
       S.panData = d; renderPan();
@@ -942,7 +942,8 @@
         (h.nextFollowUp ? '<div class="small" style="margin-top:6px">Next follow-up planned: <b>' + fd(h.nextFollowUp) + '</b></div>' : ''));
     }
     // Settled
-    out += sec('paid', '✅ Recently settled', d.paid.length + ' invoice(s)', d.paid.length ? '<div class="list">' + d.paid.map(function (p2) {
+    out += sec('paid', '✅ Recently settled', d.paid ? d.paid.length + ' invoice(s)' : 'tap to load', !d.paid ? '<div class="faint small" id="paidBody">Loading…</div>' :
+      d.paid.length ? '<div class="list">' + d.paid.map(function (p2) {
       return '<div class="inv"><div class="main"><div class="between"><b>' + esc(p2.inv) + '</b><span class="num">' + inr(p2.receipt, true) + '</span></div>' +
         '<div class="muted small">Inv ' + fd(p2.invDate) + ' · due ' + fd(p2.dueDate) + (p2.receiptDate ? ' · received ' + fd(p2.receiptDate) : '') +
         (p2.arap ? ' · AR-AP ' + inr(p2.arap) : '') + (p2.tds ? ' · TDS ' + inr(p2.tds) : '') + '</div></div></div>';
@@ -968,7 +969,16 @@
     $('sOver').onclick = function () { S.sel = {}; od.forEach(function (i) { S.sel[i.inv] = true; }); renderPanKeepScroll(); };
     $('sAll').onclick = function () { S.sel = {}; inv.forEach(function (i) { S.sel[i.inv] = true; }); renderPanKeepScroll(); };
     $('sNone').onclick = function () { S.sel = {}; renderPanKeepScroll(); };
-    on('details.sec', 'toggle', function (e, el) { S.openSec[el.getAttribute('data-sec')] = el.open; });
+    on('details.sec', 'toggle', function (e, el) {
+      var id = el.getAttribute('data-sec');
+      S.openSec[id] = el.open;
+      if (id === 'paid' && el.open && !d.paid && !d.paidLoading) {
+        d.paidLoading = true;
+        call('wbGetPaid', d.pan).then(function (r) { if (S.panData !== d) return; d.paid = r.paid; renderPanKeepScroll(); }).catch(fail);
+      }
+    });
+    var ps = document.querySelector('details.sec[data-sec="paid"]');
+    if (ps && ps.open && !d.paid && !d.paidLoading) { ps.open = false; ps.open = true; }
     on('.kv .clamp', 'click', function (e, el) { if (!e.target.closest('a')) el.classList.toggle('open'); });
     on('.ptp-in', 'change', function (e, el) { savePtpInline(el.getAttribute('data-i'), el.value, el); });
     var bp = $('bpApply');
