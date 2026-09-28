@@ -1,11 +1,12 @@
 """python -m tdsreco init  <folder>             create the working folder + templates
 python -m tdsreco run   <folder>             reconcile everything in it once
-python -m tdsreco watch <folder> [minutes]   re-run whenever an input file is added or changed"""
+python -m tdsreco watch <folder> [minutes]   re-run whenever an input file is added or changed
+python -m tdsreco bundle <folder>            make <folder> self-contained (engine copy + double-click launchers)"""
 import os
 import sys
 import time
 
-from .folders import init_folder
+from .folders import bundle, init_folder
 from .run import run
 from .util import file_sig, list_inputs
 
@@ -36,13 +37,17 @@ def watch(root, minutes):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[0] not in ("init", "run", "watch"):
+    if len(argv) < 2 or argv[0] not in ("init", "run", "watch", "bundle"):
         print(__doc__)
         return 2
     if argv[0] == "init":
         root = init_folder(argv[1])
         print(f"Working folder ready: {root}\nDrop 26AS files in 01_26AS and GL dumps in 02_Books_GL, then run:\n"
               f"  python -m tdsreco run \"{argv[1]}\"")
+    elif argv[0] == "bundle":
+        pkg = os.path.dirname(os.path.abspath(__file__))
+        root = bundle(argv[1], pkg, os.path.dirname(pkg))
+        print(f"Self-contained folder ready: {root}\nDouble-click RUN_RECO.bat (Windows) or RUN_RECO.command (Mac).")
     elif argv[0] == "run":
         run(argv[1])
     else:

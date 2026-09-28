@@ -166,3 +166,69 @@ def style_tracker(path):
     ws.freeze_panes = "C2"
     ws.auto_filter.ref = ws.dimensions
     wb.save(path)
+
+
+# ---------------------------------------------------------------- portable bundle
+LAUNCH_BAT = r"""@echo off
+REM Double-click: reconcile everything in this folder.
+setlocal
+cd /d "%~dp0"
+set PYTHONPATH=%~dp0_engine
+python -c "import pandas, openpyxl" 2>nul || python -m pip install -r "_engine\requirements.txt"
+python -m tdsreco {cmd} "%~dp0."
+pause
+"""
+
+LAUNCH_SH = """#!/bin/bash
+# Double-click (Mac) or run: reconcile everything in this folder.
+cd "$(dirname "$0")"
+export PYTHONPATH="$PWD/_engine"
+python3 -c "import pandas, openpyxl" 2>/dev/null || python3 -m pip install --user -r _engine/requirements.txt
+python3 -m tdsreco {cmd} "$PWD"
+read -r -p "Done. Press Enter to close."
+"""
+
+START_HERE = """26AS vs BOOKS - AUTOMATED RECONCILIATION
+=========================================
+
+First time (once)
+  1. Install Python 3.10+ (python.org; on Windows tick "Add python.exe to PATH").
+  2. Fill 00_Config/Settings.xlsx (yellow cells): company name, company PAN, cost of capital.
+  3. Fill 03_Masters/LDC_Certificates.xlsx with your lower deduction certificates.
+
+Every time
+  1. Drop new files into the numbered folders (see _README.txt in each):
+       01_26AS            26AS downloads (any FY, keep old ones)
+       02_Books_GL        TDS receivable GL dumps
+       04_Party_Ledgers   ledgers received from parties (PAN/TAN in file name)
+       05_Form16A         Form 16A PDFs / zips
+  2. Double-click RUN_RECO.bat (Windows) or RUN_RECO.command (Mac).
+     WATCH_FOLDER.bat / .command keeps running and re-reconciles whenever a file lands.
+  3. Open the newest workbook in 90_Output (Dashboard, then Action Items).
+  4. Update status/remarks ONLY in 91_Tracker/Action_Tracker.xlsx - they carry forward.
+
+Full playbook: README.md in this folder.
+"""
+
+
+def bundle(root, package_dir, repo_dir):
+    """Make root a self-contained folder: engine copy + launchers + templates."""
+    import shutil
+    init_folder(root)
+    eng = os.path.join(root, "_engine")
+    if os.path.exists(os.path.join(eng, "tdsreco")):
+        shutil.rmtree(os.path.join(eng, "tdsreco"))
+    shutil.copytree(package_dir, os.path.join(eng, "tdsreco"), ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for f in ("requirements.txt",):
+        shutil.copy2(os.path.join(repo_dir, f), os.path.join(eng, f))
+    shutil.copy2(os.path.join(repo_dir, "README.md"), os.path.join(root, "README.md"))
+    for name, cmd in (("RUN_RECO", "run"), ("WATCH_FOLDER", "watch")):
+        with open(os.path.join(root, f"{name}.bat"), "w", newline="\r\n") as fh:
+            fh.write(LAUNCH_BAT.format(cmd=cmd))
+        p = os.path.join(root, f"{name}.command")
+        with open(p, "w", newline="\n") as fh:
+            fh.write(LAUNCH_SH.format(cmd=cmd))
+        os.chmod(p, 0o755)
+    with open(os.path.join(root, "START_HERE.txt"), "w") as fh:
+        fh.write(START_HERE)
+    return root

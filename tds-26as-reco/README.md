@@ -44,6 +44,14 @@ python -m tdsreco watch "D:\Finance\TDS_26AS_Reco" 15       # re-runs by itself 
 
 On Windows, edit the path in `run_reco.bat` and double-click it. To make the folder fully automatic, schedule `watch` or `run` with Windows Task Scheduler.
 
+**Portable, self-contained folder** (engine + launchers inside, no path editing):
+
+```
+python -m tdsreco bundle "D:\Finance\TDS_26AS_Reco"
+```
+
+This copies the engine into `_engine/` and writes `RUN_RECO.bat` / `RUN_RECO.command` (and `WATCH_FOLDER.*`) plus `START_HERE.txt`. Copy the folder anywhere and double-click. The launcher installs pandas/openpyxl on first use.
+
 ### What the engine does with each drop
 
 * **26AS**: every file is a snapshot, dated by the date in its file name (e.g. `26AS_FY2025-26_2026-09-15.txt`), else the TRACES creation date, else its latest booking date. The newest snapshot per FY is used. Older ones stay for history. Reads TRACES text (`^`-delimited) and Excel in the `26AS_details` layout.
