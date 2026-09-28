@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# working folders hold confidential books/26AS data - never commit them
+TDS_26AS_Reco*/
+synthetic_folder/
